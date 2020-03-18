@@ -2,7 +2,7 @@
 Minecraft DiscordBot
 
 ## Setup
-`echo "TOKEN=12345" > ./discord-minecraft/.env`
-`docker build -t p0rt23/discord-minecraft .`
-`docker run -d --name="discord-minecraft"  p0rt23/discord-minecraft`
+    echo "TOKEN=12345" > ./discord-minecraft/.env
+    docker build -t p0rt23/discord-minecraft .
+    docker run -d --name="discord-minecraft"  p0rt23/discord-minecraft
 
