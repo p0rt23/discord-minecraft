@@ -1,0 +1,23 @@
+{
+  "name": "discord-minecraft",
+  "version": "1.0.0",
+  "description": "Minecraft DiscordBot",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/p0rt23/discord-minecraft.git"
+  },
+  "author": "Mark Smith",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/p0rt23/discord-minecraft/issues"
+  },
+  "homepage": "https://github.com/p0rt23/discord-minecraft#readme",
+  "dependencies": {
+    "discord.js": "^12.0.2",
+    "dotenv": "^8.2.0"
+  }
+}
