@@ -20,12 +20,17 @@ async function run() {
         index: 'filebeat-*',
         body: {
             query: {
-                match: { message: 'client' }
+                match: { message: 'telemetry' }
+                // match: { message: 'joined the game' }
             }
         }
     })
-        
+    
+    if (body.hits.total > 0) {
+        discord.channels[0].send(body.hits.hits)
+    }
     console.log(body.hits.hits)
 }
 
+// setInterval(run().catch(console.log), 10*1000);
 run().catch(console.log)
