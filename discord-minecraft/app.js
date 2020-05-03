@@ -15,6 +15,22 @@ discord.on('ready', () => {
 
 discord.login(token);
 
+discord.on('message', msg => {
+    if (msg.content === '!mc-logins') {
+        console.info(msg.channel);
+        
+        const logins = get_logins(24).catch(console.log)
+
+        if (logins) {
+            msg.reply(logins);
+        }
+    }
+});
+
+async function get_logins(hours) {
+    return "Logins here." 
+}
+
 async function run() {
     const { body } = await elastic.search({
         index: 'filebeat-*',
@@ -27,10 +43,12 @@ async function run() {
     })
     
     if (body.hits.total > 0) {
+        const channel = discord.channels.cache.get('<id>');
+        channel.send('<content>');
         discord.channels[0].send(body.hits.hits)
     }
     console.log(body.hits.hits)
 }
 
 // setInterval(run().catch(console.log), 10*1000);
-run().catch(console.log)
+// run().catch(console.log)
