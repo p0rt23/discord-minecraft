@@ -1,6 +1,6 @@
 #!/bin/bash
 
-trap "kill -SIGINT $(ps -ef | grep "docker logs -f discord-minecraft" | awk '{print $2}' | head -1)" SIGINT
+trap "echo 'Stopping and removing container...'" SIGINT
 
 docker build -t p0rt23/discord-minecraft . &&\
 docker run -d --network="elastic" --name="discord-minecraft"  p0rt23/discord-minecraft &&\
