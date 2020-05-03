@@ -19,11 +19,11 @@ discord.on('message', msg => {
     if (msg.content === '!mc-logins') {
         console.info(`minecraft-bot: ${msg.author.username} said "${msg.content}"`);
         
-        const logins = get_logins(24);
-        console.info(`logins: ${logins}`)
-        if (logins) {
-            msg.reply(logins);
-        }
+        get_logins(24).then(logins => {
+            if (logins) {
+                msg.reply(logins);
+            }
+        });
     }
 });
 
@@ -37,32 +37,9 @@ async function get_logins(hours) {
                 }
             }
         })
-        console.info(`hits: ${body.hits.total}`);
-        return `Logins for past ${hours} hours: ${body.hits.total}`;
+        return `Logins for past ${hours} hours: ${body.hits.total.value}`;
     }
     catch(e) {
         console.error(e);
     }
 }
-
-async function run() {
-    const { body } = await elastic.search({
-        index: 'filebeat-*',
-        body: {
-            query: {
-                match: { message: 'telemetry' }
-                // match: { message: 'joined the game' }
-            }
-        }
-    })
-    
-    if (body.hits.total > 0) {
-        const channel = discord.channels.cache.get('<id>');
-        channel.send('<content>');
-        discord.channels[0].send(body.hits.hits)
-    }
-    console.log(body.hits.hits)
-}
-
-// setInterval(run().catch(console.log), 10*1000);
-// run().catch(console.log)
