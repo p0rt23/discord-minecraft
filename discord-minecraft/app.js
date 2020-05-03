@@ -17,10 +17,10 @@ discord.login(token);
 
 discord.on('message', msg => {
     if (msg.content === '!mc-logins') {
-        console.info(msg.channel);
+        console.info(`minecraft-bot: ${msg.author.username} said "${msg.content}"`);
         
-        const logins = get_logins(24).catch(console.log)
-
+        const logins = get_logins(24);
+        console.info(`logins: ${logins}`)
         if (logins) {
             msg.reply(logins);
         }
@@ -28,7 +28,21 @@ discord.on('message', msg => {
 });
 
 async function get_logins(hours) {
-    return "Logins here." 
+    try {
+        const { body } = await elastic.search({
+            index: 'filebeat-*',
+            body: {
+                query: {
+                    match: { message: 'telemetry' }
+                }
+            }
+        })
+        console.info(`hits: ${body.hits.total}`);
+        return `Logins for past ${hours} hours: ${body.hits.total}`;
+    }
+    catch(e) {
+        console.error(e);
+    }
 }
 
 async function run() {
