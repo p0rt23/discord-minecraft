@@ -1,4 +1,4 @@
-node {
+pipeline {
     if (env.BRANCH_NAME != 'master') {
         currentBuild.result = 'SUCCESS'
         return
