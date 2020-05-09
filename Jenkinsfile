@@ -1,7 +1,6 @@
 def image_name     = 'discord-minecraft'
-def version        = '1.1.1'
-def image_tag      = version
 def container_name = image_name
+def version, image_tag
 
 pipeline {
     agent any
@@ -11,8 +10,19 @@ pipeline {
     stages {
         stage('Install Dependencies') {
             steps {
+                sh 'apk add build-base'
                 sh 'apk add nodejs'
                 sh 'apk add npm'
+                sh 'apk add python'
+                script {
+                    version = sh(
+                        returnStdout: true, 
+                        label: 'Getting version from package.json',
+                        script: 'node -e "const { version } = require(\'./discord-minecraft/package.json\'); process.stdout.write(version)"'
+                    ).trim()
+                    println "Version: ${version}"
+                    image_tag = version
+                }
             }
         }
         stage('Run Tests') {
