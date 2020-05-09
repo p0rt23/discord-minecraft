@@ -9,25 +9,20 @@ pipeline {
         DISCORD_TOKEN = credentials('discord-minecraft')
     }
     stages {
-        stage('Checkout') {
-            steps {
-                scm checkout
-            }   
-        }
         stage('Install Dependencies') {
             steps {
-                sh "apk add nodejs"
-                sh "npm install"
+                sh 'apk add nodejs'
+                sh 'npm install'
             }
         }
         stage('Run Tests') {
             steps {
-                sh "npm run test"
+                sh 'npm run test'
             }
         }
         stage('Docker Build and Run') {
             when {
-                branch "master"
+                branch 'master'
             }
             steps {
                 sh 'echo "TOKEN=$DISCORD_TOKEN" > ./discord-minecraft/.env'       
