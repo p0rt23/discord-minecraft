@@ -1,5 +1,5 @@
 def image_name     = 'discord-minecraft'
-def version        = '1.1.0'
+def version        = '1.1.1'
 def image_tag      = version
 def container_name = image_name
 

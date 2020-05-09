@@ -27,7 +27,7 @@ discord.on('message', msg => {
         log.info(`discord-minecraft: ${logins}`)
         msg.reply(logins)
       } else {
-        log.info(`discord-minecraft: No logins!`)
+        log.info('discord-minecraft: No logins!')
         msg.reply('No logins!')
       }
     })
