@@ -13,38 +13,39 @@ const Discord = require('discord.js')
 const discord = new Discord.Client()
 
 discord.on('ready', () => {
-  log.info(`minecraft-bot: Logged in as ${discord.user.tag}!`)
+  log.info(`discord-minecraft: Logged in as ${discord.user.tag}!`)
 })
 
 discord.login(token)
 
 discord.on('message', msg => {
   if (msg.content === '!mc-logins') {
-    log.info(`minecraft-bot: ${msg.author.username} said "${msg.content}"`)
+    log.info(`discord-minecraft: ${msg.author.username} said "${msg.content}"`)
 
-    getLogins(24).then(logins => {
+    getLogins(1).then(logins => {
       if (logins) {
+        log.info(`discord-minecraft: ${logins}`)
         msg.reply(logins)
       } else {
+        log.info(`discord-minecraft: No logins!`)
         msg.reply('No logins!')
       }
     })
   }
 })
 
-async function getLogins (hours) {
+async function getLogins (days) {
   try {
     const { body } = await elastic.search({
       index: 'filebeat-*',
       body: {
         query: {
           bool: {
-            must: [],
             filter: [
               {
                 bool: {
                   should: [{
-                    'match-phrase': {
+                    match_phrase: {
                       message: 'joined the game'
                     }
                   }],
@@ -69,8 +70,7 @@ async function getLogins (hours) {
         }
       }
     })
-    log.info(body)
-    return `Logins for past ${hours} hours: ${body.hits.total.value}`
+    return `Logins for past ${days} days: ${body.hits.total.value}`
   } catch (e) {
     log.error(e)
   }

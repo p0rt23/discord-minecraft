@@ -4,7 +4,7 @@ trap "echo 'Stopping and removing container...'" SIGINT
 
 docker build -t p0rt23/discord-minecraft . &&\
 docker run -d --network="elastic" --name="discord-minecraft"  p0rt23/discord-minecraft &&\
-docker logs -f discord-minecraft
+docker logs -f discord-minecraft | npx bunyan
 
 docker stop discord-minecraft &&\
 docker rm discord-minecraft
