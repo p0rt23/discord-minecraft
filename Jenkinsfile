@@ -13,12 +13,14 @@ pipeline {
             steps {
                 sh 'apk add nodejs'
                 sh 'apk add npm'
-                sh 'npm install'
             }
         }
         stage('Run Tests') {
             steps {
-                sh 'npm run test'
+                dir('discord-minecraft') {
+                    sh 'npm install'
+                    sh 'npm run test'
+                }
             }
         }
         stage('Docker Build and Run') {
