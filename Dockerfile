@@ -1,8 +1,9 @@
 FROM alpine
 
 RUN apk update && \
+    apk add python && \
     apk add nodejs && \
-    apk add npm
+    apk add npm && \
 
 COPY ./discord-minecraft /discord-minecraft
 WORKDIR /discord-minecraft

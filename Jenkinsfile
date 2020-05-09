@@ -16,7 +16,6 @@ pipeline {
                 branch "master"
             }
             steps {
-                checkout scm
                 sh 'echo "TOKEN=$DISCORD_TOKEN" > ./discord-minecraft/.env'       
                 sh "docker build -t p0rt23/${image_name}:${image_tag} ."
             }
