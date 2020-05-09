@@ -9,9 +9,11 @@ node {
     
     def image_tag      = version
     def container_name = image_name
+    def token          = credentials('discord-minecraft')
  
     stage('Build') {
         checkout scm
+        sh "echo 'TOKEN=${token}' > ./discord-minecraft/.env"       
         sh "docker build -t p0rt23/${image_name}:${image_tag} ."
     }
 
