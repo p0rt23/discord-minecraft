@@ -9,12 +9,20 @@ pipeline {
         DISCORD_TOKEN = credentials('discord-minecraft')
     }
     stages {
-        stage('Checkout and Lint') {
+        stage('Checkout') {
             steps {
-                nodejs(nodeJSInstallationName: 'NodeJS') {
-                    sh "npm install"
-                    sh "npm run test"
-                }
+                scm checkout
+            }   
+        }
+        stage('Install Dependencies') {
+            steps {
+                sh "apk add nodejs"
+                sh "npm install"
+            }
+        }
+        stage('Run Tests') {
+            steps {
+                sh "npm run test"
             }
         }
         stage('Docker Build and Run') {
