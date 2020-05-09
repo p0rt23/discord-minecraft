@@ -69,6 +69,7 @@ async function getLogins (hours) {
         }
       }
     })
+    log.info(body)
     return `Logins for past ${hours} hours: ${body.hits.total.value}`
   } catch (e) {
     log.error(e)
