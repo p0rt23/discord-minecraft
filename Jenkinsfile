@@ -12,9 +12,6 @@ pipeline {
     
     stages {
         stage('Build') {
-            when {
-                branch "master"
-            }
             steps {
                 sh 'echo "TOKEN=$DISCORD_TOKEN" > ./discord-minecraft/.env'       
                 sh "docker build -t p0rt23/${image_name}:${image_tag} ."
@@ -44,6 +41,12 @@ pipeline {
                         p0rt23/${image_name}:${image_tag}
                 """
             }
+        }
+    }
+
+    post {
+        always {
+            deleteDir()
         }
     }
 }
