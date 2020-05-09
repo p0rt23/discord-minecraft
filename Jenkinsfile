@@ -9,23 +9,22 @@ pipeline {
         DISCORD_TOKEN = credentials('discord-minecraft')
     }
     stages {
-        stage('Test') {
+        stage('Checkout and Lint') {
             steps {
-                sh 'npm install'
-                sh "npm run test"
+                nodejs(nodeJSInstallationName: 'NodeJS') {
+                    sh "npm install"
+                    sh "npm run test"
+                }
             }
         }
-        stage('Build') {
-            steps {
-                sh 'echo "TOKEN=$DISCORD_TOKEN" > ./discord-minecraft/.env'       
-                sh "docker build -t p0rt23/${image_name}:${image_tag} ."
-            }
-        }
-        stage('Deploy') {
+        stage('Docker Build and Run') {
             when {
                 branch "master"
             }
             steps {
+                sh 'echo "TOKEN=$DISCORD_TOKEN" > ./discord-minecraft/.env'       
+                sh "docker build -t p0rt23/${image_name}:${image_tag} ."
+ 
                 script {
                     try {
                         sh "docker stop ${container_name}"
