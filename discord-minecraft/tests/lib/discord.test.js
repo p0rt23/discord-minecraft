@@ -1,0 +1,37 @@
+const Discord = require('../../src/lib/discord.js')
+
+jest.mock('discord.js')
+
+const token = 'myToken'
+const log = {
+  info: jest.fn(),
+  error: jest.fn()
+}
+const discord = new Discord(token, log)
+
+describe('Discord Class', () => {
+  test('constructor()', () => {
+    expect(discord.client.login).toHaveBeenCalledWith(token)
+    expect(discord.log).toBeDefined()
+  })
+
+  test('reply()', () => {
+    const msg = {
+      author: { username: 'TestUsername' },
+      reply: jest.fn()
+    }
+    discord.reply(msg, 'Test Reply')
+    expect(msg.reply).toHaveBeenCalled()
+    expect(discord.log.info).toHaveBeenCalled()
+  })
+
+  test('reply(): Exception', () => {
+    const msg = {
+      reply: () => {
+        throw new Error('Test Error')
+      }
+    }
+    discord.reply(msg, 'Test Message')
+    expect(discord.log.error).toHaveBeenCalled()
+  })
+})

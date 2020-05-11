@@ -1,77 +1,96 @@
 'use strict'
 
-const bunyan = require('bunyan')
-const log = bunyan.createLogger({ name: 'discord-minecraft' })
-
 require('dotenv').config()
-const token = process.env.TOKEN
-
+const bunyan = require('bunyan')
+const Discord = require('./lib/discord.js')
 const { Client } = require('@elastic/elasticsearch')
-const elastic = new Client({ node: 'http://elasticsearch:9200' })
 
-const Discord = require('discord.js')
-const discord = new Discord.Client()
+const loggerName = 'discord-minecraft'
+const elasticUrl = 'http://elasticsearch:9200'
 
-discord.on('ready', () => {
-  log.info(`discord-minecraft: Logged in as ${discord.user.tag}!`)
-})
+class DiscordMinecraft {
+  constructor (loggerName, elasticUrl) {
+    const token = process.env.TOKEN
 
-discord.login(token)
-
-discord.on('message', msg => {
-  if (msg.content === '!mc-logins') {
-    log.info(`discord-minecraft: ${msg.author.username} said "${msg.content}"`)
-
-    getLogins(1).then(logins => {
-      if (logins) {
-        log.info(`discord-minecraft: ${logins}`)
-        msg.reply(logins)
-      } else {
-        log.info('discord-minecraft: No logins!')
-        msg.reply('No logins!')
-      }
-    })
+    this.log = bunyan.createLogger({ name: loggerName })
+    this.elastic = new Client({ node: elasticUrl })
+    this.discord = new Discord(token, this.log)
   }
-})
 
-async function getLogins (days) {
-  try {
-    const { body } = await elastic.search({
-      index: 'filebeat-*',
-      body: {
-        query: {
-          bool: {
-            filter: [
-              {
-                bool: {
-                  should: [{
-                    match_phrase: {
-                      message: 'joined the game'
-                    }
-                  }],
-                  minimum_should_match: 1
-                }
-              },
-              {
-                match_phrase: {
-                  'container.name': 'minecraft'
-                }
-              },
-              {
-                range: {
-                  '@timestamp': {
-                    gte: 'now-1d/d',
-                    lte: 'now/d'
-                  }
-                }
-              }
-            ]
-          }
-        }
+  run () {
+    this.registerEvents()
+  }
+
+  registerEvents () {
+    this.discord.client.on('ready', () => { this.handleOnReady() })
+    this.discord.client.on('message', msg => { this.handleOnMessage(msg) })
+  }
+
+  handleOnReady () {
+    this.log.info(`Logged in as ${this.discord.client.user.tag}!`)
+  }
+
+  handleOnMessage (msg) {
+    if (msg.content === '!mc-logins') {
+      this.replyLogins(msg)
+    }
+  }
+
+  replyLogins (msg) {
+    this.log.info(`${msg.author.username} said "${msg.content}"`)
+
+    getLogins(this, 1).then(logins => {
+      if (logins) {
+        this.discord.reply(msg, `${logins}`)
+      } else {
+        this.discord.reply(msg, 'No logins!')
       }
     })
-    return `Logins for past ${days} days: ${body.hits.total.value}`
-  } catch (e) {
-    log.error(e)
+
+    async function getLogins (self, days) {
+      try {
+        const { body } = await self.elastic.search({
+          index: 'filebeat-*',
+          body: {
+            query: {
+              bool: {
+                filter: [
+                  {
+                    bool: {
+                      should: [{
+                        match_phrase: {
+                          message: 'joined the game'
+                        }
+                      }],
+                      minimum_should_match: 1
+                    }
+                  },
+                  {
+                    match_phrase: {
+                      'container.name': 'minecraft'
+                    }
+                  },
+                  {
+                    range: {
+                      '@timestamp': {
+                        gte: 'now-1d/d',
+                        lte: 'now/d'
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        })
+        return `Logins for past ${days} days: ${body.hits.total.value}`
+      } catch (e) {
+        self.log.error(e)
+      }
+    }
   }
 }
+module.exports = DiscordMinecraft
+
+const bot = new DiscordMinecraft(loggerName, elasticUrl)
+bot.run()
