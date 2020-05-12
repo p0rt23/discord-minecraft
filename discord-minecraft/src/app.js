@@ -1,9 +1,9 @@
 'use strict'
 
 require('dotenv').config()
-const bunyan = require('bunyan')
+const Bunyan = require('bunyan')
 const Discord = require('./lib/discord.js')
-const { Client } = require('@elastic/elasticsearch')
+const Elastic = require('./lib/elastic.js')
 
 const loggerName = 'discord-minecraft'
 const elasticUrl = 'http://elasticsearch:9200'
@@ -12,8 +12,8 @@ class DiscordMinecraft {
   constructor (loggerName, elasticUrl) {
     const token = process.env.TOKEN
 
-    this.log = bunyan.createLogger({ name: loggerName })
-    this.elastic = new Client({ node: elasticUrl })
+    this.log = Bunyan.createLogger({ name: loggerName })
+    this.elastic = new Elastic(elasticUrl, this.log)
     this.discord = new Discord(token, this.log)
   }
 
@@ -39,55 +39,13 @@ class DiscordMinecraft {
   replyLogins (msg) {
     this.log.info(`${msg.author.username} said "${msg.content}"`)
 
-    getLogins(this, 1).then(logins => {
+    this.elastic.getLogins(1).then(logins => {
       if (logins) {
         this.discord.reply(msg, `${logins}`)
       } else {
-        this.discord.reply(msg, 'No logins!')
+        this.discord.reply(msg, 'Something went wrong!')
       }
     })
-
-    async function getLogins (self, days) {
-      try {
-        const { body } = await self.elastic.search({
-          index: 'filebeat-*',
-          body: {
-            query: {
-              bool: {
-                filter: [
-                  {
-                    bool: {
-                      should: [{
-                        match_phrase: {
-                          message: 'joined the game'
-                        }
-                      }],
-                      minimum_should_match: 1
-                    }
-                  },
-                  {
-                    match_phrase: {
-                      'container.name': 'minecraft'
-                    }
-                  },
-                  {
-                    range: {
-                      '@timestamp': {
-                        gte: 'now-1d/d',
-                        lte: 'now/d'
-                      }
-                    }
-                  }
-                ]
-              }
-            }
-          }
-        })
-        return `Logins for past ${days} days: ${body.hits.total.value}`
-      } catch (e) {
-        self.log.error(e)
-      }
-    }
   }
 }
 module.exports = DiscordMinecraft
