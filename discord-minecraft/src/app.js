@@ -5,6 +5,7 @@ const Bunyan = require('bunyan')
 const Discord = require('./lib/discord.js')
 const Elastic = require('./lib/elastic.js')
 const moment = require('moment')
+const Tail = require('tail-file')
 
 const loggerName = 'discord-minecraft'
 const elasticUrl = 'http://elasticsearch:9200'
@@ -12,11 +13,11 @@ const elasticUrl = 'http://elasticsearch:9200'
 class DiscordMinecraft {
   constructor (loggerName, elasticUrl) {
     const token = process.env.TOKEN
-
     this.log = Bunyan.createLogger({
       name: loggerName,
       level: 'debug'
     })
+    this.logfile = new Tail('/minecraft/logs/latest.log')
     this.elastic = new Elastic(elasticUrl, this.log)
     this.discord = new Discord(token, this.log)
   }
@@ -26,6 +27,7 @@ class DiscordMinecraft {
   }
 
   registerEvents () {
+    this.logfile.on('line', line => this.handleOnLine(line))
     this.discord.client.on('ready', () => { this.handleOnReady() })
     this.discord.client.on('message', msg => { this.handleOnMessage(msg) })
   }
@@ -37,6 +39,15 @@ class DiscordMinecraft {
   handleOnMessage (msg) {
     if (msg.content.match(/^!mc-logins/)) {
       this.replyLogins(msg)
+    }
+  }
+
+  handleOnLine (line) {
+    if (line.match(/<.+>/)) {
+      const match = line.match(/^\[.+\]\s\[.+\]:\s(.*)$/)
+      if (match && match[1]) {
+        this.log.info(match[1])
+      }
     }
   }
 

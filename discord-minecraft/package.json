@@ -24,7 +24,8 @@
     "bunyan": "^1.8.12",
     "discord.js": "^12.0.2",
     "dotenv": "^8.2.0",
-    "moment": "^2.25.3"
+    "moment": "^2.25.3",
+    "tail-file": "^1.4.13"
   },
   "devDependencies": {
     "eslint": "^7.0.0",
