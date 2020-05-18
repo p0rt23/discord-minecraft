@@ -50,7 +50,6 @@ class DiscordMinecraft {
 
   handleOnLine (line) {
     if (line.match(/<.+>/)) {
-      this.log.debug(match[1])
       const match = line.match(/^\[.+\]\s\[.+\]:\s(.*)$/)
       if (match && match[1]) {
         this.log.info(match[1])
