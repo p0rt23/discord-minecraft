@@ -62,7 +62,7 @@ class DiscordMinecraft {
       try {
         const timestamp = logins[i]._source['@timestamp']
         const fromNow = moment(timestamp).fromNow()
-        const message = logins[i]._source.message.replace('^.*]: ', '')
+        const message = logins[i]._source.message.replace(/^.*]: /, '')
         formatted.push(`${message} (${fromNow})`)
       } catch (e) {
         this.log.error(e)
@@ -71,7 +71,7 @@ class DiscordMinecraft {
         break
       }
     }
-    return formatted.join('')
+    return formatted.join('\n')
   }
 }
 module.exports = DiscordMinecraft
