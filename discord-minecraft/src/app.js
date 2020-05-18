@@ -13,7 +13,10 @@ class DiscordMinecraft {
   constructor (loggerName, elasticUrl) {
     const token = process.env.TOKEN
 
-    this.log = Bunyan.createLogger({ name: loggerName })
+    this.log = Bunyan.createLogger({
+      name: loggerName,
+      level: 'debug'
+    })
     this.elastic = new Elastic(elasticUrl, this.log)
     this.discord = new Discord(token, this.log)
   }
@@ -38,13 +41,14 @@ class DiscordMinecraft {
   }
 
   replyLogins (msg) {
+    const daysBack = 1
     this.log.info(`${msg.author.username} said "${msg.content}"`)
 
-    this.elastic.getLogins(1).then(logins => {
-      if (logins) {
+    this.elastic.getLogins(daysBack).then(logins => {
+      if (logins.length > 0) {
         this.discord.reply(msg, this.formatLogins(logins))
       } else {
-        this.discord.reply(msg, 'Something went wrong!')
+        this.discord.reply(msg, `No logins in the past ${daysBack} day(s).`)
       }
     }).catch(error => {
       this.log.error(error)

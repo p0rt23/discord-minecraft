@@ -27,8 +27,7 @@ module.exports = class Elastic {
                     bool: {
                       should: [{
                         match_phrase: {
-                          // message: 'joined the game'
-                          message: 'Logged in as'
+                          message: 'joined the game'
                         }
                       }],
                       minimum_should_match: 1
@@ -36,8 +35,7 @@ module.exports = class Elastic {
                   },
                   {
                     match_phrase: {
-                      // 'container.name': 'minecraft'
-                      'container.name': 'discord-minecraft'
+                      'container.name': 'minecraft'
                     }
                   },
                   {
@@ -53,9 +51,7 @@ module.exports = class Elastic {
             }
           }
         })
-
-        // return `Logins for past ${days} days: ${body.hits.total.value}`
-        // return body.hits.hits.map(e => e._source.message).join('\n')
+        self.log.debug('Elastic: ' + body.hits.hits)
         return body.hits.hits
       } catch (e) {
         self.log.error(e)
