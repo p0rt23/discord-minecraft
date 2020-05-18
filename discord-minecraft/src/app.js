@@ -4,6 +4,7 @@ require('dotenv').config()
 const Bunyan = require('bunyan')
 const Discord = require('./lib/discord.js')
 const Elastic = require('./lib/elastic.js')
+const moment = require('moment')
 
 const loggerName = 'discord-minecraft'
 const elasticUrl = 'http://elasticsearch:9200'
@@ -41,11 +42,33 @@ class DiscordMinecraft {
 
     this.elastic.getLogins(1).then(logins => {
       if (logins) {
-        this.discord.reply(msg, `${logins}`)
+        this.discord.reply(msg, this.formatLogins(logins))
       } else {
         this.discord.reply(msg, 'Something went wrong!')
       }
+    }).catch(error => {
+      this.log.error(error)
     })
+  }
+
+  formatLogins (logins) {
+    const formatted = []
+    let maxRecords = 10
+    for (let i = 0; i < logins.length; i++) {
+      try {
+        const detail = JSON.parse(logins[i]._source.message)
+        const message = detail.msg
+        const time = detail.time
+        const fromNow = moment(time).fromNow()
+        formatted.push(`${message} (${fromNow})`)
+      } catch (e) {
+        this.log.error(e)
+      }
+      if (maxRecords-- === 0) {
+        break
+      }
+    }
+    return formatted.join('')
   }
 }
 module.exports = DiscordMinecraft

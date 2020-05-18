@@ -1,4 +1,5 @@
 const { Client } = require('@elastic/elasticsearch')
+// const util = require('util')
 
 module.exports = class Elastic {
   constructor (elasticUrl, log) {
@@ -18,6 +19,7 @@ module.exports = class Elastic {
         const { body } = await self.client.search({
           index: 'filebeat-*',
           body: {
+            sort: [{ '@timestamp': 'desc' }],
             query: {
               bool: {
                 filter: [
@@ -25,7 +27,8 @@ module.exports = class Elastic {
                     bool: {
                       should: [{
                         match_phrase: {
-                          message: 'joined the game'
+                          // message: 'joined the game'
+                          message: 'Logged in as'
                         }
                       }],
                       minimum_should_match: 1
@@ -33,7 +36,8 @@ module.exports = class Elastic {
                   },
                   {
                     match_phrase: {
-                      'container.name': 'minecraft'
+                      // 'container.name': 'minecraft'
+                      'container.name': 'discord-minecraft'
                     }
                   },
                   {
@@ -50,7 +54,9 @@ module.exports = class Elastic {
           }
         })
 
-        return `Logins for past ${days} days: ${body.hits.total.value}`
+        // return `Logins for past ${days} days: ${body.hits.total.value}`
+        // return body.hits.hits.map(e => e._source.message).join('\n')
+        return body.hits.hits
       } catch (e) {
         self.log.error(e)
       }

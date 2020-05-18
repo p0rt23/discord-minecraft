@@ -11,8 +11,16 @@ module.exports = class Discord {
 
   reply (msg, text) {
     try {
-      this.log.info(`Replied to ${msg.author.username}: ${text}`)
-      msg.reply(text)
+      // Can't send more than 2000 characters
+      if (text.length >= 2000) {
+        text = text.substring(0, 1950)
+        this.log.info(`Replied to ${msg.author.username}: (TRUNCATED) ${text}`)
+      } else {
+        this.log.info(`Replied to ${msg.author.username}: ${text}`)
+      }
+      msg.reply(text).catch(e => {
+        this.log.error(e)
+      })
     } catch (e) {
       this.log.error(e)
     }
