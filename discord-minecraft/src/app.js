@@ -17,17 +17,23 @@ class DiscordMinecraft {
       name: loggerName,
       level: 'debug'
     })
-    this.logfile = new Tail('/minecraft/logs/latest.log')
-    this.elastic = new Elastic(elasticUrl, this.log)
-    this.discord = new Discord(token, this.log)
+    try {
+      this.logfile = new Tail('/minecraft/logs/latest.log', { force: true })
+      this.elastic = new Elastic(elasticUrl, this.log)
+      this.discord = new Discord(token, this.log)
+    } catch (e) {
+      this.log.error(e)
+    }
   }
 
   run () {
     this.registerEvents()
+    this.logfile.start()
   }
 
   registerEvents () {
     this.logfile.on('line', line => this.handleOnLine(line))
+    this.logfile.on('error', err => this.log.error(err))
     this.discord.client.on('ready', () => { this.handleOnReady() })
     this.discord.client.on('message', msg => { this.handleOnMessage(msg) })
   }
@@ -44,6 +50,7 @@ class DiscordMinecraft {
 
   handleOnLine (line) {
     if (line.match(/<.+>/)) {
+      this.log.debug(match[1])
       const match = line.match(/^\[.+\]\s\[.+\]:\s(.*)$/)
       if (match && match[1]) {
         this.log.info(match[1])
