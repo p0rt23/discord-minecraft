@@ -35,18 +35,23 @@ class DiscordMinecraft {
   }
 
   handleOnMessage (msg) {
-    if (msg.content === '!mc-logins') {
+    if (msg.content.match(/^!mc-logins/)) {
       this.replyLogins(msg)
     }
   }
 
   replyLogins (msg) {
-    const daysBack = 1
+    const match = msg.content.match(/^!mc-logins\s(\d+)/)
+    let daysBack = 1
+    if (match && match[1]) {
+      daysBack = match[1]
+    }
+
     this.log.info(`${msg.author.username} said "${msg.content}"`)
 
     this.elastic.getLogins(daysBack).then(logins => {
       if (logins.length > 0) {
-        this.discord.reply(msg, this.formatLogins(logins))
+        this.discord.reply(msg, this.formatLogins(logins, daysBack))
       } else {
         this.discord.reply(msg, `No logins in the past ${daysBack} day(s).`)
       }
@@ -55,9 +60,11 @@ class DiscordMinecraft {
     })
   }
 
-  formatLogins (logins) {
+  formatLogins (logins, daysBack) {
     const formatted = []
     let maxRecords = 10
+
+    formatted.push(`Logins for the past ${daysBack} day(s):`)
     for (let i = 0; i < logins.length; i++) {
       try {
         const timestamp = logins[i]._source['@timestamp']
