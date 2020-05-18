@@ -51,7 +51,7 @@ module.exports = class Elastic {
             }
           }
         })
-        self.log.debug('Elastic: ' + body.hits.hits)
+        self.log.debug(body.hits.hits)
         return body.hits.hits
       } catch (e) {
         self.log.error(e)
