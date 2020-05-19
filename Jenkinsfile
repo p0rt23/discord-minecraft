@@ -59,6 +59,9 @@ pipeline {
                         -v minecraft-logs:/minecraft/logs:ro \
                         p0rt23/${image_name}:${image_tag}
                 """
+                sh """
+                    docker network connect minecraft ${container_name}
+                """
             }
         }
     }
