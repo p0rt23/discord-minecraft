@@ -70,6 +70,9 @@ class DiscordMinecraft {
   }
 
   handleOnLine (line) {
+    if (line.match(/\[Rcon\]/)) {
+      return
+    }
     if (line.match(/<.+>/)) {
       const match = line.match(/^\[.+\]\s\[.+\]:\s(.*)$/)
       if (match && match[1]) {
