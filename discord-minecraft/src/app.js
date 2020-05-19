@@ -9,6 +9,7 @@ const Tail = require('tail-file')
 
 const loggerName = 'discord-minecraft'
 const elasticUrl = 'http://elasticsearch:9200'
+const minecraftChannel = '712098346805756004'
 
 class DiscordMinecraft {
   constructor (loggerName, elasticUrl) {
@@ -52,7 +53,13 @@ class DiscordMinecraft {
     if (line.match(/<.+>/)) {
       const match = line.match(/^\[.+\]\s\[.+\]:\s(.*)$/)
       if (match && match[1]) {
-        this.log.info(match[1])
+        this.discord.client.channels.fetch(minecraftChannel)
+          .then(channel => {
+            const channelName = channel.name
+            this.log.info(`Sent to channel (${channelName}): ${match[1]}`)
+            channel.send(match[1])
+          })
+          .catch(err => this.log.error(err))
       }
     }
   }
