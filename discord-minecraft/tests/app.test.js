@@ -2,8 +2,10 @@ const DiscordMinecraft = require('../src/app.js')
 
 jest.mock('discord.js')
 jest.mock('@elastic/elasticsearch')
+jest.mock('rcon-client')
+jest.mock('tail-file')
 
-const bot = new DiscordMinecraft('test-logger', 'elastic-url')
+const bot = new DiscordMinecraft('test-logger', 'elastic-url', 'channel', 'container', 1234, 'password')
 
 describe('DiscordMinecraft', () => {
   test('run()', () => {
