@@ -5,8 +5,16 @@ const DiscordJs = require('discord.js')
 module.exports = class Discord {
   constructor (token, log) {
     this.log = log
-    this.client = new DiscordJs.Client()
-    this.client.login(token)
+    this.token = token
+  }
+
+  init () {
+    try {
+      this.client = new DiscordJs.Client()
+      this.client.login(this.token)
+    } catch (e) {
+      this.log.error(e)
+    }
   }
 
   reply (msg, text) {
@@ -24,5 +32,9 @@ module.exports = class Discord {
     } catch (e) {
       this.log.error(e)
     }
+  }
+
+  finish () {
+    this.client.destroy()
   }
 }

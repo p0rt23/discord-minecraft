@@ -1,13 +1,23 @@
+'use strict'
+
 const { Client } = require('@elastic/elasticsearch')
-// const util = require('util')
 
 module.exports = class Elastic {
-  constructor (elasticUrl, log) {
+  constructor (config, log) {
+    this.url = config.url
+    this.enabled = config.enabled
     this.log = log
-    try {
-      this.client = new Client({ node: elasticUrl })
-    } catch (e) {
-      this.log.error(e)
+    this.client = {}
+  }
+
+  init () {
+    if (this.enabled) {
+      try {
+        this.client = new Client({ node: this.url })
+        this.log.debug(`ElasticSearch enabled: ${this.url}`)
+      } catch (e) {
+        this.log.error(e)
+      }
     }
   }
 

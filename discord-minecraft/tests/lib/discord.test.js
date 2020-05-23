@@ -11,8 +11,13 @@ const discord = new Discord(token, log)
 
 describe('Discord Class', () => {
   test('constructor()', () => {
-    expect(discord.client.login).toHaveBeenCalledWith(token)
     expect(discord.log).toBeDefined()
+  })
+
+  test('init()', () => {
+    discord.init()
+
+    expect(discord.client.login).toHaveBeenCalledWith(token)
   })
 
   test('reply()', () => {
@@ -20,7 +25,9 @@ describe('Discord Class', () => {
       author: { username: 'TestUsername' },
       reply: jest.fn()
     }
+
     discord.reply(msg, 'Test Reply')
+
     expect(msg.reply).toHaveBeenCalled()
     expect(discord.log.info).toHaveBeenCalled()
   })
@@ -31,7 +38,9 @@ describe('Discord Class', () => {
         throw new Error('Test Error')
       }
     }
+
     discord.reply(msg, 'Test Message')
+
     expect(discord.log.error).toHaveBeenCalled()
   })
 })
