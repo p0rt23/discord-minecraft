@@ -2,28 +2,35 @@ const Elastic = require('../../src/lib/elastic.js')
 
 jest.mock('@elastic/elasticsearch')
 
-const url = 'http://test-elastic-instance'
 const log = {
   info: jest.fn(),
+  debug: jest.fn(),
   error: jest.fn()
 }
-const elastic = new Elastic(url, log)
+const config = {
+  url: 'http://test-elastic-instance',
+  enabled: true
+}
+
+const elastic = new Elastic(config, log)
 
 describe('lib/Elastic', () => {
   test('constructor()', () => {
     expect(elastic.log).toMatchObject(log)
+  })
+
+  test('init()', () => {
+    elastic.init()
+
     expect(elastic.client).toBeDefined()
   })
 
   test('getLogins()', () => {
-    elastic.client.search = jest.fn(() => {
-      return new Promise((resolve, reject) => {
-        resolve({ body: { hits: { total: { value: 5 } } } })
-      })
+    elastic.client.search = jest.fn(() => Promise.resolve())
+
+    elastic.getLogins().then(c => {
+      expect(elastic.client.search).toHaveBeenCalled()
     })
-    // elastic.getLogins()
-    // expect(elastic.client.search).toHaveBeenCalled()
-    expect(elastic.getLogins()).resolves.toMatch(/5/)
   })
 
   test('getLogins(): exception', () => {
