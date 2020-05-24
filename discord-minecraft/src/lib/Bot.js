@@ -65,11 +65,11 @@ module.exports = class Bot {
     if (line.match(/<.+>/)) {
       const match = line.match(/^\[.+\]\s\[.+\]:\s(.*)$/)
       if (match && match[1]) {
+        this.log.debug(`Fetching channel for: ${this.minecraftChannel}`)
         this.discord.client.channels.fetch(this.minecraftChannel)
           .then(channel => {
-            const channelName = channel.name
             channel.send(match[1])
-            this.log.info(`Sent to channel (${channelName}): ${match[1]}`)
+            this.log.info(`Sent to (${channel.name}): ${match[1]}`)
           })
           .catch(err => this.log.error(err))
       }

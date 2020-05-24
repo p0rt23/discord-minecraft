@@ -6,7 +6,7 @@ const config = {
   development: {
     bot: {
       token: process.env.TOKEN,
-      minecraftChannel: 712098346805756004,
+      minecraftChannel: '712098346805756004',
       logName: 'discord-minecraft-develop'
     },
     elasticSearch: {
@@ -29,7 +29,7 @@ const config = {
   testing: {
     bot: {
       token: process.env.TOKEN,
-      minecraftChannel: 712098346805756004,
+      minecraftChannel: '712098346805756004',
       logName: 'discord-minecraft-develop'
     },
     elasticSearch: {
@@ -52,7 +52,7 @@ const config = {
   production: {
     bot: {
       token: process.env.TOKEN,
-      minecraftChannel: 712098346805756004,
+      minecraftChannel: '712098346805756004',
       logName: 'discord-minecraft'
     },
     elasticSearch: {

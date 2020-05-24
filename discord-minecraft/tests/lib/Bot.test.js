@@ -32,6 +32,7 @@ const config = {
 const bot = new DiscordMinecraft(config)
 bot.log = {
   info: jest.fn(),
+  debug: jest.fn(),
   error: jest.fn()
 }
 
