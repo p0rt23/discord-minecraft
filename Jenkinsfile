@@ -1,11 +1,24 @@
-def image_name     = 'discord-minecraft'
-def container_name = image_name
-def version, image_tag
+def image_name = 'discord-minecraft'
+def container_name, version, image_tag, token_credential, rcon_credential, node_env
+
+if (env.BRANCH_NAME == 'master') {
+    container_name   = image_name 
+    token_credential = 'discord-minecraft'
+    rcon_credential  = 'discord-minecraft-rcon'
+    node_env         = 'production'
+}
+else {
+    container_name   = "${image_name}-develop" 
+    token_credential = 'discord-minecraft-develop'
+    rcon_credential  = 'discord-minecraft-rcon-develop'
+    node_env         = 'testing'
+}
 
 pipeline {
     agent any
     environment {
-        DISCORD_TOKEN = credentials('discord-minecraft')
+        DISCORD_TOKEN = credentials("${token_credential}")
+        RCON_SECRET   = credentials("${rcon_credential}")
     }
     stages {
         stage('Install Dependencies') {
@@ -29,16 +42,14 @@ pipeline {
             steps {
                 dir('discord-minecraft') {
                     sh 'npm install'
-                    sh 'npm run test'
+                    sh 'npm test'
                 }
             }
         }
         stage('Docker Build and Run') {
-            when {
-                branch 'master'
-            }
             steps {
                 sh 'echo "TOKEN=$DISCORD_TOKEN" > ./discord-minecraft/.env'       
+                sh 'echo "RCON_SECRET=$RCON_SECRET" >> ./discord-minecraft/.env'       
                 sh "docker build -t p0rt23/${image_name}:${image_tag} ."
  
                 script {
@@ -53,10 +64,12 @@ pipeline {
                 sh """
                     docker run \
                         -d \
-                        --restart="always" \
-                        --network="elastic" \
-                        --name="${container_name}" \
+                        --restart=always \
+                        --network=elastic \
+                        --name=${container_name} \
                         -v minecraft-logs:/minecraft/logs:ro \
+                        -v ${container_name}-preferences:/preferences \
+                        --env NODE_ENV=${node_env} \
                         p0rt23/${image_name}:${image_tag}
                 """
                 sh """
@@ -69,5 +82,5 @@ pipeline {
         always {
             deleteDir()
         }
-    }
+    } 
 }

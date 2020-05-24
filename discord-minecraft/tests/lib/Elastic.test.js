@@ -1,4 +1,4 @@
-const Elastic = require('../../src/lib/elastic.js')
+const Elastic = require('../../src/lib/Elastic.js')
 
 jest.mock('@elastic/elasticsearch')
 
