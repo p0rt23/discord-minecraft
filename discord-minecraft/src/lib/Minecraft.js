@@ -26,49 +26,36 @@ module.exports = class Minecraft {
         this.log.error(e)
       }
     }
-
-    if (this.rconEnabled) {
-      try {
-        this.rcon = new Rcon({
-          host: this.rconHost,
-          port: this.rconPort,
-          password: this.rconPassword
-        })
-        this.rcon.connect()
-        this.log.debug(`Minecraft RCON enabled: ${this.rconHost}:${this.rconPort}`)
-      } catch (e) {
-        this.log.error(e)
-      }
-    }
   }
 
   say (message) {
-    this.doRcon((rcon) => {
-      try {
-        rcon.send(`say ${message}`)
-        this.log.info(`Sent to minecraft server (${this.rconHost}): ${message}`)
-      } catch (err) {
-        this.log.error(err)
-      }
-    })
+    if (this.rconEnabled) {
+      this.doRcon(async (rcon) => {
+        try {
+          await rcon.send(`say ${message}`)
+          this.log.info(`Sent to minecraft server (${this.rconHost}): ${message}`)
+        } catch (e) {
+          this.log.error(e)
+        }
+      }).catch((e) => this.log.error(e))
+    }
   }
 
   doRcon (callback) {
-    if (this.rconEnabled) {
+    return doRcon(this, callback)
+
+    async function doRcon (self) {
       try {
-        // Establish a connection for each call.
-        // Minecraft server can't shut down with open rcon connection
-        this.log.debug(`Connecting to Minecraft RCON: ${this.rconHost}:${this.rconPort}`)
-        const rcon = new Rcon({
-          host: this.rconHost,
-          port: this.rconPort,
-          password: this.rconPassword
-        })
-        callback(rcon)
-        this.log.debug(`Disconnecting from Minecraft RCON: ${this.rconHost}:${this.rconPort}`)
+        self.log.debug(`Connecting to Minecraft RCON: ${self.rconHost}:${self.rconPort}`)
+        const rcon = new Rcon({ host: self.rconHost, port: self.rconPort, password: self.rconPassword })
+        await rcon.connect()
+
+        await callback(rcon)
+
+        self.log.debug(`Disconnecting from Minecraft RCON: ${self.rconHost}:${self.rconPort}`)
         rcon.end()
-      } catch (e) {
-        this.log.error(e)
+      } catch (err) {
+        self.log.error(err)
       }
     }
   }
