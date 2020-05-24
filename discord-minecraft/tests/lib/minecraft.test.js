@@ -1,10 +1,11 @@
-const Minecraft = require('../../src/lib/minecraft.js')
-
 jest.mock('rcon-client')
 jest.mock('tail-file')
 
+const Minecraft = require('../../src/lib/Minecraft.js')
+
 const log = {
   info: jest.fn(),
+  debug: jest.fn(),
   error: jest.fn()
 }
 
@@ -33,11 +34,13 @@ describe('Minecraft Class', () => {
   test('init()', () => {
     minecraft.init()
     expect(minecraft.logfile.start).toHaveBeenCalled()
-    expect(minecraft.rcon.connect).toHaveBeenCalled()
   })
 
   test('say()', () => {
+    jest.spyOn(minecraft, 'doRcon')
+
     minecraft.say('test')
-    expect(minecraft.rcon.send).toHaveBeenCalled()
+
+    expect(minecraft.doRcon).toHaveBeenCalled()
   })
 })
