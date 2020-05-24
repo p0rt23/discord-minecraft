@@ -21,7 +21,6 @@ module.exports = class Minecraft {
       try {
         this.logfile = new Tail(this.logPath, { force: true })
         this.logfile.start()
-        this.logfile.on('line', line => this.handleOnLine(line))
         this.logfile.on('error', err => this.log.error(err))
         this.log.debug(`Minecraft logfile watching enabled: ${this.logPath}`)
       } catch (e) {

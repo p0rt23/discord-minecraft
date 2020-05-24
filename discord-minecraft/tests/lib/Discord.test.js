@@ -1,4 +1,4 @@
-const Discord = require('../../src/lib/discord.js')
+const Discord = require('../../src/lib/Discord.js')
 
 jest.mock('discord.js')
 

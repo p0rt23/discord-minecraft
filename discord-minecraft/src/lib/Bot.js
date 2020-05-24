@@ -3,13 +3,13 @@
 const Bunyan = require('bunyan')
 const moment = require('moment')
 const nodeCleanup = require('node-cleanup')
-const Discord = require('./lib/discord.js')
-const Elastic = require('./lib/elastic.js')
-const Minecraft = require('./lib/minecraft.js')
+const Discord = require('./Discord.js')
+const Elastic = require('./Elastic.js')
+const Minecraft = require('./Minecraft.js')
+const Preferences = require('./Preferences.js')
 
-module.exports = class DiscordMinecraft {
+module.exports = class Bot {
   constructor (config) {
-    this.loginsEnabled = config.elasticSearch.enabled
     this.chatEnabled = config.minecraft.rconEnabled
     this.minecraftChannel = config.bot.minecraftChannel
 
@@ -17,6 +17,7 @@ module.exports = class DiscordMinecraft {
     this.discord = new Discord(config.bot.token, this.log)
     this.elastic = new Elastic(config.elasticSearch, this.log)
     this.minecraft = new Minecraft(config.minecraft, this.log)
+    this.preferences = new Preferences(config, this.log)
   }
 
   run () {
@@ -24,6 +25,7 @@ module.exports = class DiscordMinecraft {
       this.discord.init()
       this.elastic.init()
       this.minecraft.init()
+      this.preferences.init()
       this.registerEvents()
     } catch (e) {
       this.log.error(e)
@@ -48,10 +50,10 @@ module.exports = class DiscordMinecraft {
   }
 
   handleOnMessage (msg) {
-    if (msg.content.match(/^!mc-logins/) && this.loginsEnabled) {
+    if (msg.content.match(/^!mc-logins/) && this.preferences.loginsEnabled(msg.guild.id)) {
       this.replyLogins(msg)
     }
-    if (msg.content.match(/^!say/) && this.chatEnabled) {
+    if (msg.content.match(/^!say/) && this.preferences.chatEnabled(msg.guild.id)) {
       this.minecraftSay(msg)
     }
   }

@@ -1,4 +1,4 @@
-const Minecraft = require('../../src/lib/minecraft.js')
+const Minecraft = require('../../src/lib/Minecraft.js')
 
 jest.mock('rcon-client')
 jest.mock('tail-file')

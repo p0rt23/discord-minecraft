@@ -1,8 +1,9 @@
-const DiscordMinecraft = require('../src/DiscordMinecraft.js')
+const DiscordMinecraft = require('../../src/lib/Bot.js')
 
-jest.mock('../src/lib/discord.js')
-jest.mock('../src/lib/elastic.js')
-jest.mock('../src/lib/minecraft.js')
+jest.mock('../../src/lib/Discord.js')
+jest.mock('../../src/lib/Elastic.js')
+jest.mock('../../src/lib/Minecraft.js')
+jest.mock('../../src/lib/Preferences.js')
 
 const config = {
   bot: {
@@ -21,6 +22,10 @@ const config = {
     rconPassword: 'secret',
     logfileEnabled: true,
     logPath: '/minecraft/logs/latest.log'
+  },
+  preferences: {
+    enabled: true,
+    path: 'testpath.json'
   }
 }
 
@@ -32,7 +37,6 @@ bot.log = {
 
 describe('DiscordMinecraft', () => {
   test('constructor()', () => {
-    expect(bot.loginsEnabled).toBe(config.elasticSearch.enabled)
     expect(bot.chatEnabled).toBe(config.minecraft.rconEnabled)
     expect(bot.minecraftChannel).toBe(config.bot.minecraftChannel)
     expect(bot.log).toBeDefined()
@@ -70,6 +74,7 @@ describe('DiscordMinecraft', () => {
 
   test('handleOnMessage(): !mc-logins', () => {
     const msg = {
+      guild: { id: 123 },
       content: '!mc-logins',
       author: {
         username: 'TestUser'
@@ -81,19 +86,24 @@ describe('DiscordMinecraft', () => {
         message: '[test]: Player1 logged in!'
       }
     }]))
+    jest.spyOn(bot, 'replyLogins')
     bot.formatLogins = jest.fn()
+    bot.preferences.loginsEnabled = jest.fn(() => { return true })
 
     bot.handleOnMessage(msg)
 
+    expect(bot.replyLogins).toHaveBeenCalled()
     expect(bot.elastic.getLogins).toHaveBeenCalled()
     bot.elastic.getLogins.mockClear()
   })
 
   test('handleOnMessage(): !say', () => {
     const msg = {
+      guild: { id: 123 },
       author: { username: 'TestUser1' },
       content: '!say Hi'
     }
+    bot.preferences.chatEnabled = jest.fn(() => { return true })
     bot.minecraft.say = jest.fn()
 
     bot.handleOnMessage(msg)
