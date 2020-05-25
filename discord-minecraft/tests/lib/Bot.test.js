@@ -1,4 +1,4 @@
-const DiscordMinecraft = require('../../src/lib/Bot.js')
+const Bot = require('../../src/lib/Bot.js')
 
 jest.mock('../../src/lib/Discord.js')
 jest.mock('../../src/lib/Elastic.js')
@@ -8,7 +8,6 @@ jest.mock('../../src/lib/Preferences.js')
 const config = {
   bot: {
     token: process.env.token,
-    minecraftChannel: 712098346805756004,
     logName: 'discord-minecraft'
   },
   elasticSearch: {
@@ -29,17 +28,53 @@ const config = {
   }
 }
 
-const bot = new DiscordMinecraft(config)
+function getMsg (...mentions) {
+  const msg = {
+    guild: { id: 123 },
+    content: '',
+    author: { username: 'TestUser' },
+    channel: { id: '567' },
+    mentions: {
+      users: { first: () => undefined },
+      channels: { first: () => undefined }
+    }
+  }
+
+  mentions.map(mention => {
+    if (mention.match(/^@/)) {
+      const parts = mention.split('@')
+      msg.mentions.users.first = () => {
+        return { username: parts[1] }
+      }
+    }
+    if (mention.match(/^#/)) {
+      const parts = mention.split('#')
+      msg.mentions.channels.first = () => {
+        return { name: parts[1] }
+      }
+    }
+  })
+
+  return msg
+}
+
+const bot = new Bot(config)
 bot.log = {
   info: jest.fn(),
   debug: jest.fn(),
   error: jest.fn()
 }
+bot.preferences.channel = jest.fn(() => { return '567' })
+bot.preferences.botPrefsEnabled = true
+bot.discord.client = {
+  user: { username: 'BlockyBot' },
+  on: jest.fn(),
+  channels: { fetch: jest.fn(() => Promise.resolve('channelName')) }
+}
 
-describe('DiscordMinecraft', () => {
+describe('lib/Bot.js', () => {
   test('constructor()', () => {
     expect(bot.chatEnabled).toBe(config.minecraft.rconEnabled)
-    expect(bot.minecraftChannel).toBe(config.bot.minecraftChannel)
     expect(bot.log).toBeDefined()
     expect(bot.discord).toBeDefined()
     expect(bot.elastic).toBeDefined()
@@ -47,7 +82,6 @@ describe('DiscordMinecraft', () => {
   })
 
   test('run()', () => {
-    bot.discord.client = { on: jest.fn() }
     bot.minecraft.logfile = { on: jest.fn() }
 
     bot.run()
@@ -60,7 +94,7 @@ describe('DiscordMinecraft', () => {
     expect(bot.minecraft.logfile.on).toHaveBeenCalledWith('line', expect.any(Function))
   })
 
-  test('formatLogins(): !mc-logins', () => {
+  test('formatLogins(): !logins', () => {
     const logins = [{
       _source: {
         '@timestamp': '2020-05-23T01:35:34.264Z',
@@ -73,23 +107,80 @@ describe('DiscordMinecraft', () => {
     expect(text).toBeDefined()
   })
 
-  test('handleOnMessage(): !mc-logins', () => {
-    const msg = {
-      guild: { id: 123 },
-      content: '!mc-logins',
-      author: {
-        username: 'TestUser'
+  test('isAtMe(): true', () => {
+    const msg = getMsg('@BlockyBot')
+    msg.content = '@BlockyBot, how are you?'
+
+    expect(bot.isAtMe(msg)).toBe(true)
+  })
+
+  test('isAtMe(): false', () => {
+    const msg = getMsg('@reven')
+    msg.content = '@reven, how are you?'
+
+    expect(bot.isAtMe(msg)).toBe(false)
+  })
+
+  test('toggleSavePreferences()', () => {
+    const msg = getMsg('@reven')
+    msg.content = '@BlockyBot !savePreferences false'
+
+    bot.toggleSavePreferences(msg)
+    expect(bot.preferences.savePreferences).toHaveBeenCalledWith(msg.guild.id, false)
+
+    msg.content = '@BlockyBot !savePreferences true'
+    bot.toggleSavePreferences(msg)
+    expect(bot.preferences.savePreferences).toHaveBeenCalledWith(msg.guild.id, true)
+  })
+
+  test('formatStatus():', () => {
+    bot.preferences.prefs = {
+      123: {
+        savePreferences: false,
+        chat: false
       }
     }
+
+    expect(bot.formatStatus('123')).toBeDefined()
+  })
+
+  test('showStatus():', () => {
+    const msg = getMsg('@BlockyBot')
+    msg.content = '!showStatus'
+
+    bot.showStatus(msg)
+
+    expect(bot.discord.reply).toHaveBeenCalled()
+  })
+
+  test('clearPreferences():', () => {
+    const msg = getMsg('@BlockyBot')
+    msg.content = '@BlockyBot !clearPreferences'
+
+    bot.clearPreferences(msg)
+
+    expect(bot.preferences.clearPreferences).toHaveBeenCalled()
+  })
+
+  test('handleOnLine()', () => {
+    const line = '[test] [test]: <TestUser1> Testing!'
+    bot.handleOnLine(line)
+
+    expect(bot.discord.client.channels.fetch).toHaveBeenCalled()
+  })
+
+  test('handleOnMessage(): !logins', () => {
+    const msg = getMsg()
+    msg.content = '!logins'
     bot.elastic.getLogins = jest.fn(() => Promise.resolve([{
       _source: {
         '@timestamp': '2020-05-23T01:35:34.264Z',
         message: '[test]: Player1 logged in!'
       }
     }]))
-    jest.spyOn(bot, 'replyLogins')
     bot.formatLogins = jest.fn()
     bot.preferences.loginsEnabled = jest.fn(() => { return true })
+    jest.spyOn(bot, 'replyLogins')
 
     bot.handleOnMessage(msg)
 
@@ -99,11 +190,8 @@ describe('DiscordMinecraft', () => {
   })
 
   test('handleOnMessage(): !say', () => {
-    const msg = {
-      guild: { id: 123 },
-      author: { username: 'TestUser1' },
-      content: '!say Hi'
-    }
+    const msg = getMsg()
+    msg.content = '!say Hi'
     bot.preferences.chatEnabled = jest.fn(() => { return true })
     bot.minecraft.say = jest.fn()
 
@@ -114,7 +202,8 @@ describe('DiscordMinecraft', () => {
   })
 
   test('handleOnMessage(): Random Text', () => {
-    const msg = { content: 'Random Text' }
+    const msg = getMsg()
+    msg.content = 'Random Text'
 
     bot.handleOnMessage(msg)
 
@@ -122,14 +211,44 @@ describe('DiscordMinecraft', () => {
     expect(bot.minecraft.say).not.toHaveBeenCalled()
   })
 
-  test('handleOnLine()', () => {
-    const line = '[test] [test]: <TestUser1> Testing!'
-    bot.discord.client.channels = {
-      fetch: jest.fn(() => Promise.resolve('channelName'))
-    }
+  test('handleOnMessage(): !savePreferences', () => {
+    const msg = getMsg('@BlockyBot')
+    msg.content = '@BlockyBot !savePreferences false'
+    jest.spyOn(bot, 'toggleSavePreferences')
 
-    bot.handleOnLine(line)
+    bot.handleOnMessage(msg)
 
-    expect(bot.discord.client.channels.fetch).toHaveBeenCalled()
+    expect(bot.toggleSavePreferences).toHaveBeenCalled()
+  })
+
+  test('handleOnMessage(): !showStatus', () => {
+    const msg = getMsg('@BlockyBot')
+    msg.content = '@BlockyBot !status'
+
+    jest.spyOn(bot, 'showStatus')
+
+    bot.handleOnMessage(msg)
+
+    expect(bot.showStatus).toHaveBeenCalled()
+  })
+
+  test('handleOnMessage(): !channel', () => {
+    const msg = getMsg('@BlockyBot', '#minecraft')
+    msg.content = '@BlockyBot !channel #minecraft'
+    jest.spyOn(bot, 'setChannel')
+
+    bot.handleOnMessage(msg)
+
+    expect(bot.setChannel).toHaveBeenCalled()
+  })
+
+  test('handleOnMessage(): !clearPreferences', () => {
+    const msg = getMsg('@BlockyBot')
+    msg.content = '@BlockyBot !clearPreferences'
+    jest.spyOn(bot, 'clearPreferences')
+
+    bot.handleOnMessage(msg)
+
+    expect(bot.clearPreferences).toHaveBeenCalled()
   })
 })

@@ -95,72 +95,72 @@ describe('lib/Preferences.js', () => {
     expect(fs.access).toHaveBeenCalled()
   })
 
-  test('preference(): bot: true, server: true, is: true', () => {
+  test('loginsEnabled(): bot: true, server: true, is: true', () => {
     pref.botLoginsEnabled = true
     pref.prefs = {
       123: { logins: true }
     }
 
-    expect(pref.preference(123, 'logins')).toBe(true)
+    expect(pref.loginsEnabled(123)).toBe(true)
   })
 
-  test('preference(): bot: true, server: false, is: false', () => {
+  test('loginsEnabled(): bot: true, server: false, is: false', () => {
     pref.botLoginsEnabled = true
     pref.prefs = {
       123: { logins: false }
     }
 
-    expect(pref.preference(123, 'logins')).toBe(false)
+    expect(pref.loginsEnabled(123)).toBe(false)
   })
 
-  test('preference(): bot: true, server: undef, is: true', () => {
+  test('loginsEnabled(): bot: true, server: undef, is: true', () => {
     pref.botLoginsEnabled = true
     pref.prefs = { }
 
-    expect(pref.preference(123, 'logins')).toBe(true)
+    expect(pref.loginsEnabled(123)).toBe(true)
   })
 
-  test('preference(): bot: true, server: undef2, is: true', () => {
+  test('loginsEnabled(): bot: true, server: undef2, is: true', () => {
     pref.botLoginsEnabled = true
     pref.prefs = {
       123: {}
     }
 
-    expect(pref.preference(123, 'logins')).toBe(true)
+    expect(pref.loginsEnabled(123)).toBe(true)
   })
 
-  test('preference(): bot: false, server: true, is: false', () => {
+  test('loginsEnabled(): bot: false, server: true, is: false', () => {
     pref.botLoginsEnabled = false
     pref.prefs = {
       123: { logins: true }
     }
 
-    expect(pref.preference(123, 'logins')).toBe(false)
+    expect(pref.loginsEnabled(123)).toBe(false)
   })
 
-  test('preference(): bot: false, server: false, is: false', () => {
+  test('loginsEnabled(): bot: false, server: false, is: false', () => {
     pref.botLoginsEnabled = false
     pref.prefs = {
       123: { logins: false }
     }
 
-    expect(pref.preference(123, 'logins')).toBe(false)
+    expect(pref.loginsEnabled(123)).toBe(false)
   })
 
-  test('preference(): bot: false, server: undef, is: false', () => {
+  test('loginsEnabled(): bot: false, server: undef, is: false', () => {
     pref.botLoginsEnabled = false
     pref.prefs = {}
 
-    expect(pref.preference(123, 'logins')).toBe(false)
+    expect(pref.loginsEnabled(123)).toBe(false)
   })
 
-  test('preference(): bot: false, server: undef2, is: false', () => {
+  test('loginsEnabled(): bot: false, server: undef2, is: false', () => {
     pref.botLoginsEnabled = false
     pref.prefs = {
       123: {}
     }
 
-    expect(pref.preference(123, 'logins')).toBe(false)
+    expect(pref.loginsEnabled(123)).toBe(false)
   })
 
   test('preference(): set true', () => {
@@ -186,5 +186,19 @@ describe('lib/Preferences.js', () => {
 
   test('chatEnabled(): set false', () => {
     expect(pref.chatEnabled(123, false)).toBe(false)
+  })
+
+  test('savePreferences(): set false', () => {
+    expect(pref.savePreferences(123, false)).toBe(false)
+  })
+
+  test('channel(): set 567', () => {
+    expect(pref.channel(123, '567')).toBe('567')
+  })
+
+  test('clearPreferences()', () => {
+    pref.channel(123, '567')
+    pref.clearPreferences(123)
+    expect(pref.channel(123)).not.toBeDefined()
   })
 })
