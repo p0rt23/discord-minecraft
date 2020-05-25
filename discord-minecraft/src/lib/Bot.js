@@ -67,7 +67,7 @@ module.exports = class Bot {
         if (msg.content.match(/^!logins/) && this.preferences.loginsEnabled(msg.guild.id)) {
           this.replyLogins(msg)
         } else {
-          if (this.preferences.chatEnabled(msg.guild.id)) {
+          if (this.preferences.chatEnabled(msg.guild.id) && (!this.isFromMe(msg))) {
             this.minecraftSay(msg)
           }
         }
@@ -103,6 +103,10 @@ module.exports = class Bot {
         })
       }
     }
+  }
+
+  isFromMe (msg) {
+    return (msg.author.username === this.discord.client.user.username)
   }
 
   setChannel (msg) {

@@ -107,6 +107,19 @@ describe('lib/Bot.js', () => {
     expect(text).toBeDefined()
   })
 
+  test('isFromMe()', () => {
+    const msg = getMsg()
+    msg.author.username = bot.discord.client.user.username
+    msg.content = 'How are you?'
+
+    expect(bot.isFromMe(msg)).toBe(true)
+
+    msg.author.username = 'TestUser'
+    msg.content = 'How are you?'
+
+    expect(bot.isFromMe(msg)).toBe(false)
+  })
+
   test('isAtMe(): true', () => {
     const msg = getMsg('@BlockyBot')
     msg.content = '@BlockyBot, how are you?'
