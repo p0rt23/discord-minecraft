@@ -10,7 +10,7 @@ const Preferences = require('./Preferences.js')
 
 module.exports = class Bot {
   constructor (config) {
-    this.chatEnabled = config.minecraft.rconEnabled
+    this.botChatEnabled = config.minecraft.rconEnabled
     this.log = Bunyan.createLogger({ name: config.bot.logName, level: 'debug' })
     this.discord = new Discord(config.bot.token, this.log)
     this.elastic = new Elastic(config.elasticSearch, this.log)
@@ -38,7 +38,7 @@ module.exports = class Bot {
   registerEvents () {
     this.discord.client.on('ready', () => { this.handleOnReady() })
     this.discord.client.on('message', msg => { this.handleOnMessage(msg) })
-    if (this.chatEnabled) {
+    if (this.botChatEnabled) {
       this.minecraft.logfile.on('line', line => this.handleOnLine(line))
     }
   }
@@ -48,15 +48,6 @@ module.exports = class Bot {
   }
 
   handleOnMessage (msg) {
-    // Only process if message was in the right channel
-    if (msg.channel.id === this.preferences.channel(msg.guild.id)) {
-      if (msg.content.match(/^!say/) && this.preferences.chatEnabled(msg.guild.id)) {
-        this.minecraftSay(msg)
-      } else if (msg.content.match(/^!logins/) && this.preferences.loginsEnabled(msg.guild.id)) {
-        this.replyLogins(msg)
-      }
-    }
-
     // Only process if message is tagged at @botname
     if (this.isAtMe(msg)) {
       if (msg.content.match(/!channel/)) {
@@ -67,6 +58,19 @@ module.exports = class Bot {
         this.toggleSavePreferences(msg)
       } else if (msg.content.match(/!clearPreferences/) && this.preferences.botPrefsEnabled) {
         this.clearPreferences(msg)
+      } else if (msg.content.match(/!chat/)) {
+        this.toggleChat(msg)
+      }
+    } else {
+      // Only process if message was in the right channel
+      if (msg.channel.id === this.preferences.channel(msg.guild.id)) {
+        if (msg.content.match(/^!logins/) && this.preferences.loginsEnabled(msg.guild.id)) {
+          this.replyLogins(msg)
+        } else {
+          if (this.preferences.chatEnabled(msg.guild.id)) {
+            this.minecraftSay(msg)
+          }
+        }
       }
     }
   }
@@ -87,7 +91,7 @@ module.exports = class Bot {
         // Any guilds subscribed to chat should get the message
         this.preferences.getGuilds().forEach(guildId => {
           const channel = this.preferences.channel(guildId)
-          if (channel !== undefined) {
+          if (channel !== undefined && this.preferences.chatEnabled(guildId)) {
             this.log.debug(`Fetching channel for: ${channel}`)
             this.discord.client.channels.fetch(channel)
               .then(c => {
@@ -113,6 +117,17 @@ module.exports = class Bot {
   showStatus (msg) {
     this.discord.reply(msg, this.formatStatus(msg.guild.id))
     this.log.info(`[${msg.guild.id}] ${msg.author.username}: showStatus`)
+  }
+
+  toggleChat (msg) {
+    if (msg.content.match(/true/)) {
+      this.preferences.chatEnabled(msg.guild.id, true)
+      this.log.info(`[${msg.guild.id}] ${msg.author.username}: chat=true`)
+    }
+    if (msg.content.match(/false/)) {
+      this.preferences.chatEnabled(msg.guild.id, false)
+      this.log.info(`[${msg.guild.id}] ${msg.author.username}: chat=false`)
+    }
   }
 
   formatStatus (id) {

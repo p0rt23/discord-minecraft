@@ -74,7 +74,7 @@ bot.discord.client = {
 
 describe('lib/Bot.js', () => {
   test('constructor()', () => {
-    expect(bot.chatEnabled).toBe(config.minecraft.rconEnabled)
+    expect(bot.botChatEnabled).toBe(config.minecraft.rconEnabled)
     expect(bot.log).toBeDefined()
     expect(bot.discord).toBeDefined()
     expect(bot.elastic).toBeDefined()
@@ -122,7 +122,7 @@ describe('lib/Bot.js', () => {
   })
 
   test('toggleSavePreferences()', () => {
-    const msg = getMsg('@reven')
+    const msg = getMsg('@BlockyBot')
     msg.content = '@BlockyBot !savePreferences false'
 
     bot.toggleSavePreferences(msg)
@@ -162,12 +162,33 @@ describe('lib/Bot.js', () => {
     expect(bot.preferences.clearPreferences).toHaveBeenCalled()
   })
 
+  test('toggleChat()', () => {
+    const msg = getMsg('@BlockyBot')
+    msg.content = '@BlockyBot !chat false'
+
+    bot.toggleChat(msg)
+    expect(bot.preferences.chatEnabled).toHaveBeenCalledWith(msg.guild.id, false)
+
+    msg.content = '@BlockyBot !chat true'
+    bot.toggleChat(msg)
+    expect(bot.preferences.chatEnabled).toHaveBeenCalledWith(msg.guild.id, true)
+  })
+
   test('handleOnLine()', () => {
     bot.preferences.getGuilds = jest.fn(() => { return ['345'] })
+    bot.preferences.chatEnabled = jest.fn(() => { return true })
     const line = '[test] [test]: <TestUser1> Testing!'
+
     bot.handleOnLine(line)
 
     expect(bot.discord.client.channels.fetch).toHaveBeenCalled()
+
+    bot.handleOnLine(line)
+
+    bot.discord.client.channels.fetch.mockClear()
+    bot.preferences.chatEnabled = jest.fn(() => { return false })
+
+    expect(bot.discord.client.channels.fetch).not.toHaveBeenCalled()
   })
 
   test('handleOnMessage(): !logins', () => {
@@ -251,5 +272,15 @@ describe('lib/Bot.js', () => {
     bot.handleOnMessage(msg)
 
     expect(bot.clearPreferences).toHaveBeenCalled()
+  })
+
+  test('handleOnMessage(): !chat', () => {
+    const msg = getMsg('@BlockyBot')
+    msg.content = '@BlockyBot !chat false'
+    jest.spyOn(bot, 'toggleChat')
+
+    bot.handleOnMessage(msg)
+
+    expect(bot.toggleChat).toHaveBeenCalled()
   })
 })
