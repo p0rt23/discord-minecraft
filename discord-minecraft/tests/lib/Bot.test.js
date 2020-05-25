@@ -163,6 +163,7 @@ describe('lib/Bot.js', () => {
   })
 
   test('handleOnLine()', () => {
+    bot.preferences.getGuilds = jest.fn(() => { return ['345'] })
     const line = '[test] [test]: <TestUser1> Testing!'
     bot.handleOnLine(line)
 
