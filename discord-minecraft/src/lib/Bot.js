@@ -160,11 +160,8 @@ module.exports = class Bot {
   }
 
   minecraftSay (msg) {
-    const match = msg.content.match(/^!say\s+(.*)$/)
-    if (match && match[1]) {
-      const message = `<${msg.author.username}> ${match[1]}`
-      this.minecraft.say(message)
-    }
+    const message = `<${msg.author.username}> ${msg.content}`
+    this.minecraft.say(message)
   }
 
   replyLogins (msg) {

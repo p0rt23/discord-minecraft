@@ -211,16 +211,22 @@ describe('lib/Bot.js', () => {
     bot.elastic.getLogins.mockClear()
   })
 
-  test('handleOnMessage(): !say', () => {
+  test('handleOnMessage(): text', () => {
     const msg = getMsg()
-    msg.content = '!say Hi'
+    msg.content = 'Hi'
     bot.preferences.chatEnabled = jest.fn(() => { return true })
     bot.minecraft.say = jest.fn()
 
     bot.handleOnMessage(msg)
 
     expect(bot.minecraft.say).toHaveBeenCalled()
+
     bot.minecraft.say.mockClear()
+    bot.preferences.chatEnabled = jest.fn(() => { return false })
+
+    bot.handleOnMessage(msg)
+
+    expect(bot.minecraft.say).not.toHaveBeenCalled()
   })
 
   test('handleOnMessage(): Random Text', () => {
