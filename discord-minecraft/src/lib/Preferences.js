@@ -21,7 +21,7 @@ module.exports = class Preferences {
   }
 
   getGuilds () {
-    return this.prefs.keys()
+    return Object.keys(this.prefs)
   }
 
   loginsEnabled (guildId, isEnabled) {
