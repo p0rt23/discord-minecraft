@@ -21,19 +21,45 @@ module.exports = class Preferences {
   }
 
   loginsEnabled (guildId, isEnabled) {
-    return this.preference(guildId, 'logins', isEnabled)
+    return this.botLoginsEnabled && this.preference(guildId, 'logins', isEnabled)
   }
 
   chatEnabled (guildId, isEnabled) {
-    return this.preference(guildId, 'chat', isEnabled)
+    return this.botChatEnabled && this.preference(guildId, 'chat', isEnabled)
+  }
+
+  savePreferences (guildId, isEnabled) {
+    return this.preference(guildId, 'savePreferences', isEnabled)
+  }
+
+  channel (guildId, channelId) {
+    if (channelId !== undefined) {
+      return this.preference(guildId, 'channel', channelId)
+    } else {
+      // preference() returns true if undefined as default value
+      return this.preference(guildId, 'channel') === true
+        ? undefined : this.preference(guildId, 'channel')
+    }
+  }
+
+  clearPreferences (guildId) {
+    if (guildId !== undefined) {
+      this.log.debug(`Clearing preferences for ${guildId}`)
+      this.prefs[guildId] = {}
+      if (this.savePreferences(guildId)) {
+        this.savePrefs()
+      }
+    }
   }
 
   preference (id, pref, bool) {
     if (this.botPrefsEnabled && (bool !== undefined)) {
       this.setPref(id, pref, bool)
-      this.savePrefs()
+      if (this.savePreferences(id)) {
+        this.savePrefs()
+      }
     }
-    return this.botLoginsEnabled && this.getPref(id, pref)
+    return this.getPref(id, pref)
   }
 
   setPref (id, pref, bool) {

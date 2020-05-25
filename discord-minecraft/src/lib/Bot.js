@@ -11,8 +11,6 @@ const Preferences = require('./Preferences.js')
 module.exports = class Bot {
   constructor (config) {
     this.chatEnabled = config.minecraft.rconEnabled
-    this.minecraftChannel = config.bot.minecraftChannel
-
     this.log = Bunyan.createLogger({ name: config.bot.logName, level: 'debug' })
     this.discord = new Discord(config.bot.token, this.log)
     this.elastic = new Elastic(config.elasticSearch, this.log)
@@ -50,12 +48,33 @@ module.exports = class Bot {
   }
 
   handleOnMessage (msg) {
-    if (msg.content.match(/^!mc-logins/) && this.preferences.loginsEnabled(msg.guild.id)) {
-      this.replyLogins(msg)
+    // Only process if message was in the right channel
+    if (msg.channel.id === this.preferences.channel(msg.guild.id)) {
+      if (msg.content.match(/^!say/) && this.preferences.chatEnabled(msg.guild.id)) {
+        this.minecraftSay(msg)
+      } else if (msg.content.match(/^!logins/) && this.preferences.loginsEnabled(msg.guild.id)) {
+        this.replyLogins(msg)
+      }
     }
-    if (msg.content.match(/^!say/) && this.preferences.chatEnabled(msg.guild.id)) {
-      this.minecraftSay(msg)
+
+    // Only process if message is tagged at @botname
+    if (this.isAtMe(msg)) {
+      if (msg.content.match(/!channel/)) {
+        this.setChannel(msg)
+      } else if (msg.content.match(/!status/)) {
+        this.showStatus(msg)
+      } else if (msg.content.match(/!savePreferences/) && this.preferences.botPrefsEnabled) {
+        this.toggleSavePreferences(msg)
+      } else if (msg.content.match(/!clearPreferences/) && this.preferences.botPrefsEnabled) {
+        this.clearPreferences(msg)
+      }
     }
+  }
+
+  clearPreferences (msg) {
+    this.log.info(`[${msg.guild.id}] ${msg.author.username}: clearPreferences`)
+    this.preferences.clearPreferences(msg.guild.id)
+    this.discord.reply(msg, 'preferences cleared!')
   }
 
   handleOnLine (line) {
@@ -76,6 +95,49 @@ module.exports = class Bot {
     }
   }
 
+  setChannel (msg) {
+    const channel = msg.mentions.channels.first()
+    if (channel !== undefined) {
+      this.preferences.channel(msg.guild.id, channel.id)
+      this.log.info(`[${msg.guild.id}] ${msg.author.username}: channel=${channel.id} (${channel.name})`)
+      this.discord.reply(msg, `channel set to ${channel.name}!`)
+    }
+  }
+
+  showStatus (msg) {
+    this.discord.reply(msg, this.formatStatus(msg.guild.id))
+    this.log.info(`[${msg.guild.id}] ${msg.author.username}: showStatus`)
+  }
+
+  formatStatus (id) {
+    const status = []
+    status.push(`Current status of ${this.discord.client.user}:`)
+    for (const key in this.preferences.prefs[id]) {
+      status.push(`${key}: ${this.preferences.prefs[id][key]}`)
+    }
+    return status.join('\n')
+  }
+
+  toggleSavePreferences (msg) {
+    if (msg.content.match(/true/)) {
+      this.preferences.savePreferences(msg.guild.id, true)
+      this.log.info(`[${msg.guild.id}] ${msg.author.username}: savePreferences=true`)
+    }
+    if (msg.content.match(/false/)) {
+      this.preferences.savePreferences(msg.guild.id, false)
+      this.log.info(`[${msg.guild.id}] ${msg.author.username}: savePreferences=false`)
+    }
+  }
+
+  isAtMe (msg) {
+    const taggedUser = msg.mentions.users.first()
+    const me = this.discord.client.user
+    if ((taggedUser !== undefined) && (taggedUser.username === me.username)) {
+      return true
+    }
+    return false
+  }
+
   minecraftSay (msg) {
     const match = msg.content.match(/^!say\s+(.*)$/)
     if (match && match[1]) {
@@ -85,7 +147,7 @@ module.exports = class Bot {
   }
 
   replyLogins (msg) {
-    const match = msg.content.match(/^!mc-logins\s(\d+)/)
+    const match = msg.content.match(/^!logins\s(\d+)/)
     let daysBack = 1
     if (match && match[1]) {
       daysBack = match[1]

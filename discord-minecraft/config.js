@@ -6,12 +6,11 @@ const config = {
   development: {
     bot: {
       token: process.env.TOKEN,
-      minecraftChannel: '712098346805756004',
       logName: 'discord-minecraft-develop'
     },
     elasticSearch: {
-      enabled: false,
-      url: ''
+      enabled: true,
+      url: 'http://elasticsearch:9200'
     },
     minecraft: {
       rconEnabled: false,
@@ -23,13 +22,12 @@ const config = {
     },
     preferences: {
       enabled: true,
-      path: 'preferences.json'
+      path: '/preferences/preferences.json'
     }
   },
   testing: {
     bot: {
       token: process.env.TOKEN,
-      minecraftChannel: '712098346805756004',
       logName: 'discord-minecraft-develop'
     },
     elasticSearch: {
@@ -52,7 +50,6 @@ const config = {
   production: {
     bot: {
       token: process.env.TOKEN,
-      minecraftChannel: '712098346805756004',
       logName: 'discord-minecraft'
     },
     elasticSearch: {

@@ -14,7 +14,7 @@ module.exports = class Elastic {
     if (this.enabled) {
       try {
         this.client = new Client({ node: this.url })
-        this.log.debug(`ElasticSearch enabled: ${this.url}`)
+        this.log.info(`ElasticSearch enabled: ${this.url}`)
       } catch (e) {
         this.log.error(e)
       }
