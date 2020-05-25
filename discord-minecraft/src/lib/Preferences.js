@@ -20,6 +20,10 @@ module.exports = class Preferences {
     }
   }
 
+  getGuilds () {
+    return Object.keys(this.prefs)
+  }
+
   loginsEnabled (guildId, isEnabled) {
     return this.botLoginsEnabled && this.preference(guildId, 'logins', isEnabled)
   }

@@ -84,13 +84,19 @@ module.exports = class Bot {
     if (line.match(/<.+>/)) {
       const match = line.match(/^\[.+\]\s\[.+\]:\s(.*)$/)
       if (match && match[1]) {
-        this.log.debug(`Fetching channel for: ${this.minecraftChannel}`)
-        this.discord.client.channels.fetch(this.minecraftChannel)
-          .then(channel => {
-            channel.send(match[1])
-            this.log.info(`Sent to (${channel.name}): ${match[1]}`)
-          })
-          .catch(err => this.log.error(err))
+        // Any guilds subscribed to chat should get the message
+        this.preferences.getGuilds().forEach(guildId => {
+          const channel = this.preferences.channel(guildId)
+          if (channel !== undefined) {
+            this.log.debug(`Fetching channel for: ${channel}`)
+            this.discord.client.channels.fetch(channel)
+              .then(c => {
+                c.send(match[1])
+                this.log.info(`Sent to (${c.name}): ${match[1]}`)
+              })
+              .catch(err => this.log.error(err))
+          }
+        })
       }
     }
   }
