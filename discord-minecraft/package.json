@@ -1,6 +1,6 @@
 {
   "name": "discord-minecraft",
-  "version": "1.11.1",
+  "version": "1.12.1",
   "description": "Minecraft DiscordBot",
   "main": "src/app.js",
   "scripts": {
