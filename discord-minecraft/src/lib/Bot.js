@@ -60,16 +60,16 @@ module.exports = class Bot {
 
     if (line.match(/: <.+>/)) {
       // [01:41:45] [Server thread/INFO]: <p0rt23> Working
-      this.sendLogToGuilds(line, this.preferences.chatEnabled)
+      this.sendLogToGuilds(line, this.preferences.chatEnabled.bind(this))
     } else if (line.match(/joined the game$/)) {
       // [23:35:34] [Server thread/INFO]: p0rt23 joined the game
-      this.sendLogToGuilds(line, this.preferences.joinMessages)
+      this.sendLogToGuilds(line, this.preferences.joinMessages.bind(this))
     } else if (line.match(/has made the advancement \[.+\]$/)) {
       // [23:40:26] [Server thread/INFO]: p0rt23 has made the advancement [Tactical Fishing]
-      this.sendLogToGuilds(line, this.preferences.achievements)
+      this.sendLogToGuilds(line, this.preferences.achievements.bind(this))
     } else if (line.match(/left the game$/)) {
       // [23:40:31] [Server thread/INFO]: p0rt23 left the game
-      this.sendLogToGuilds(line, this.preferences.leaveMessages)
+      this.sendLogToGuilds(line, this.preferences.leaveMessages.bind(this))
     }
   }
 
