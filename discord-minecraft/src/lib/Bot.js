@@ -18,33 +18,64 @@ module.exports = class Bot {
     this.preferences = new Preferences(config, this.log)
   }
 
-  run () {
-    try {
-      this.discord.init()
-      this.elastic.init()
-      this.minecraft.init()
-      this.preferences.init()
-      this.registerEvents()
-    } catch (e) {
-      this.log.error(e)
-    }
-
-    nodeCleanup((exitCode, signal) => {
-      this.discord.finish()
-      this.minecraft.finish()
-    })
+  clearPreferences (msg) {
+    this.log.info(`[${msg.guild.id}] ${msg.author.username}: clearPreferences`)
+    this.preferences.clearPreferences(msg.guild.id)
+    this.discord.reply(msg, 'preferences cleared!')
   }
 
-  registerEvents () {
-    this.discord.client.on('ready', () => { this.handleOnReady() })
-    this.discord.client.on('message', msg => { this.handleOnMessage(msg) })
-    if (this.botChatEnabled) {
-      this.minecraft.logfile.on('line', line => this.handleOnLine(line))
+  formatLogins (logins, daysBack) {
+    const formatted = []
+    let maxRecords = 10
+
+    formatted.push(`Logins for the past ${daysBack} day(s):`)
+    for (let i = 0; i < logins.length; i++) {
+      try {
+        const timestamp = logins[i]._source['@timestamp']
+        const fromNow = moment(timestamp).fromNow()
+        const message = logins[i]._source.message.replace(/^.*]: /, '')
+        formatted.push(`${message} (${fromNow})`)
+      } catch (e) {
+        this.log.error(e)
+      }
+      if (maxRecords-- === 0) {
+        break
+      }
     }
+    return formatted.join('\n')
   }
 
-  handleOnReady () {
-    this.log.info(`Logged in as ${this.discord.client.user.tag}!`)
+  formatStatus (id) {
+    const status = []
+    status.push(`Current status of ${this.discord.client.user}:`)
+    for (const key in this.preferences.prefs[id]) {
+      status.push(`${key}: ${this.preferences.prefs[id][key]}`)
+    }
+    return status.join('\n')
+  }
+
+  handleOnLine (line) {
+    if (line.match(/\[Rcon\]/)) {
+      return
+    }
+    if (line.match(/<.+>/)) {
+      const match = line.match(/^\[.+\]\s\[.+\]:\s(.*)$/)
+      if (match && match[1]) {
+        // Any guilds subscribed to chat should get the message
+        this.preferences.getGuilds().forEach(guildId => {
+          const channel = this.preferences.channel(guildId)
+          if (channel !== undefined && this.preferences.chatEnabled(guildId)) {
+            this.log.debug(`Fetching channel for: ${channel}`)
+            this.discord.client.channels.fetch(channel)
+              .then(c => {
+                c.send(match[1])
+                this.log.info(`Sent to (${c.name}): ${match[1]}`)
+              })
+              .catch(err => this.log.error(err))
+          }
+        })
+      }
+    }
   }
 
   handleOnMessage (msg) {
@@ -75,38 +106,51 @@ module.exports = class Bot {
     }
   }
 
-  clearPreferences (msg) {
-    this.log.info(`[${msg.guild.id}] ${msg.author.username}: clearPreferences`)
-    this.preferences.clearPreferences(msg.guild.id)
-    this.discord.reply(msg, 'preferences cleared!')
+  handleOnReady () {
+    this.log.info(`Logged in as ${this.discord.client.user.tag}!`)
   }
 
-  handleOnLine (line) {
-    if (line.match(/\[Rcon\]/)) {
-      return
+  isAtMe (msg) {
+    const taggedUser = msg.mentions.users.first()
+    const me = this.discord.client.user
+    if ((taggedUser !== undefined) && (taggedUser.username === me.username)) {
+      return true
     }
-    if (line.match(/<.+>/)) {
-      const match = line.match(/^\[.+\]\s\[.+\]:\s(.*)$/)
-      if (match && match[1]) {
-        // Any guilds subscribed to chat should get the message
-        this.preferences.getGuilds().forEach(guildId => {
-          const channel = this.preferences.channel(guildId)
-          if (channel !== undefined && this.preferences.chatEnabled(guildId)) {
-            this.log.debug(`Fetching channel for: ${channel}`)
-            this.discord.client.channels.fetch(channel)
-              .then(c => {
-                c.send(match[1])
-                this.log.info(`Sent to (${c.name}): ${match[1]}`)
-              })
-              .catch(err => this.log.error(err))
-          }
-        })
-      }
-    }
+    return false
   }
 
   isFromMe (msg) {
     return (msg.author.username === this.discord.client.user.username)
+  }
+
+  minecraftSay (msg) {
+    const message = `<${msg.author.username}> ${msg.content}`
+    this.minecraft.say(message)
+  }
+
+  registerEvents () {
+    this.discord.client.on('ready', () => { this.handleOnReady() })
+    this.discord.client.on('message', msg => { this.handleOnMessage(msg) })
+    if (this.botChatEnabled) {
+      this.minecraft.logfile.on('line', line => this.handleOnLine(line))
+    }
+  }
+
+  run () {
+    try {
+      this.discord.init()
+      this.elastic.init()
+      this.minecraft.init()
+      this.preferences.init()
+      this.registerEvents()
+    } catch (e) {
+      this.log.error(e)
+    }
+
+    nodeCleanup((exitCode, signal) => {
+      this.discord.finish()
+      this.minecraft.finish()
+    })
   }
 
   setChannel (msg) {
@@ -134,15 +178,6 @@ module.exports = class Bot {
     }
   }
 
-  formatStatus (id) {
-    const status = []
-    status.push(`Current status of ${this.discord.client.user}:`)
-    for (const key in this.preferences.prefs[id]) {
-      status.push(`${key}: ${this.preferences.prefs[id][key]}`)
-    }
-    return status.join('\n')
-  }
-
   toggleSavePreferences (msg) {
     if (msg.content.match(/true/)) {
       this.preferences.savePreferences(msg.guild.id, true)
@@ -152,20 +187,6 @@ module.exports = class Bot {
       this.preferences.savePreferences(msg.guild.id, false)
       this.log.info(`[${msg.guild.id}] ${msg.author.username}: savePreferences=false`)
     }
-  }
-
-  isAtMe (msg) {
-    const taggedUser = msg.mentions.users.first()
-    const me = this.discord.client.user
-    if ((taggedUser !== undefined) && (taggedUser.username === me.username)) {
-      return true
-    }
-    return false
-  }
-
-  minecraftSay (msg) {
-    const message = `<${msg.author.username}> ${msg.content}`
-    this.minecraft.say(message)
   }
 
   replyLogins (msg) {
@@ -186,26 +207,5 @@ module.exports = class Bot {
     }).catch(error => {
       this.log.error(error)
     })
-  }
-
-  formatLogins (logins, daysBack) {
-    const formatted = []
-    let maxRecords = 10
-
-    formatted.push(`Logins for the past ${daysBack} day(s):`)
-    for (let i = 0; i < logins.length; i++) {
-      try {
-        const timestamp = logins[i]._source['@timestamp']
-        const fromNow = moment(timestamp).fromNow()
-        const message = logins[i]._source.message.replace(/^.*]: /, '')
-        formatted.push(`${message} (${fromNow})`)
-      } catch (e) {
-        this.log.error(e)
-      }
-      if (maxRecords-- === 0) {
-        break
-      }
-    }
-    return formatted.join('\n')
   }
 }
