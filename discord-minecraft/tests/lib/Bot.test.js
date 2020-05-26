@@ -74,7 +74,7 @@ bot.discord.client = {
 
 describe('lib/Bot.js', () => {
   test('constructor()', () => {
-    expect(bot.botChatEnabled).toBe(config.minecraft.rconEnabled)
+    expect(bot.botLogfileEnabled).toBe(config.minecraft.logfileEnabled)
     expect(bot.log).toBeDefined()
     expect(bot.discord).toBeDefined()
     expect(bot.elastic).toBeDefined()
@@ -134,16 +134,16 @@ describe('lib/Bot.js', () => {
     expect(bot.isAtMe(msg)).toBe(false)
   })
 
-  test('toggleSavePreferences()', () => {
+  test('togglePreference()', () => {
     const msg = getMsg('@BlockyBot')
     msg.content = '@BlockyBot !savePreferences false'
 
-    bot.toggleSavePreferences(msg)
-    expect(bot.preferences.savePreferences).toHaveBeenCalledWith(msg.guild.id, false)
+    bot.togglePreference(msg, 'savePreferences')
+    expect(bot.preferences.preference).toHaveBeenCalledWith(msg.guild.id, 'savePreferences', false)
 
     msg.content = '@BlockyBot !savePreferences true'
-    bot.toggleSavePreferences(msg)
-    expect(bot.preferences.savePreferences).toHaveBeenCalledWith(msg.guild.id, true)
+    bot.togglePreference(msg, 'savePreferences')
+    expect(bot.preferences.preference).toHaveBeenCalledWith(msg.guild.id, 'savePreferences', true)
   })
 
   test('formatStatus():', () => {
@@ -175,33 +175,45 @@ describe('lib/Bot.js', () => {
     expect(bot.preferences.clearPreferences).toHaveBeenCalled()
   })
 
-  test('toggleChat()', () => {
-    const msg = getMsg('@BlockyBot')
-    msg.content = '@BlockyBot !chat false'
+  test('sendLogToGuilds()', () => {
+    const line = '[01:41:45] [Server thread/INFO]: <p0rt23> Working'
+    const prefFn = jest.fn(() => { return true })
+    bot.preferences.getGuilds = jest.fn(() => { return ['345'] })
 
-    bot.toggleChat(msg)
-    expect(bot.preferences.chatEnabled).toHaveBeenCalledWith(msg.guild.id, false)
+    bot.sendLogToGuilds(line, prefFn)
 
-    msg.content = '@BlockyBot !chat true'
-    bot.toggleChat(msg)
-    expect(bot.preferences.chatEnabled).toHaveBeenCalledWith(msg.guild.id, true)
+    expect(prefFn).toHaveBeenCalled()
+    expect(bot.discord.client.channels.fetch).toHaveBeenCalled()
+    bot.discord.client.channels.fetch.mockClear()
   })
 
   test('handleOnLine()', () => {
-    bot.preferences.getGuilds = jest.fn(() => { return ['345'] })
-    bot.preferences.chatEnabled = jest.fn(() => { return true })
-    const line = '[test] [test]: <TestUser1> Testing!'
+    jest.spyOn(bot, 'sendLogToGuilds')
 
+    let line = '[01:41:32] [Server thread/INFO]: [Rcon] <Reven> Testing!'
     bot.handleOnLine(line)
+    expect(bot.sendLogToGuilds).not.toHaveBeenCalled()
+    bot.sendLogToGuilds.mockClear()
 
-    expect(bot.discord.client.channels.fetch).toHaveBeenCalled()
-
+    line = '[01:41:45] [Server thread/INFO]: <p0rt23> Working'
     bot.handleOnLine(line)
+    expect(bot.sendLogToGuilds).toHaveBeenCalled()
+    bot.sendLogToGuilds.mockClear()
 
-    bot.discord.client.channels.fetch.mockClear()
-    bot.preferences.chatEnabled = jest.fn(() => { return false })
+    line = '[23:35:34] [Server thread/INFO]: p0rt23 joined the game'
+    bot.handleOnLine(line)
+    expect(bot.sendLogToGuilds).toHaveBeenCalled()
+    bot.sendLogToGuilds.mockClear()
 
-    expect(bot.discord.client.channels.fetch).not.toHaveBeenCalled()
+    line = '[23:40:26] [Server thread/INFO]: p0rt23 has made the advancement [Tactical Fishing]'
+    bot.handleOnLine(line)
+    expect(bot.sendLogToGuilds).toHaveBeenCalled()
+    bot.sendLogToGuilds.mockClear()
+
+    line = '[23:40:31] [Server thread/INFO]: p0rt23 left the game'
+    bot.handleOnLine(line)
+    expect(bot.sendLogToGuilds).toHaveBeenCalled()
+    bot.sendLogToGuilds.mockClear()
   })
 
   test('handleOnMessage(): !logins', () => {
@@ -252,14 +264,34 @@ describe('lib/Bot.js', () => {
     expect(bot.minecraft.say).not.toHaveBeenCalled()
   })
 
-  test('handleOnMessage(): !savePreferences', () => {
+  test('handleOnMessage(): preferences', () => {
     const msg = getMsg('@BlockyBot')
+    jest.spyOn(bot, 'togglePreference')
+
     msg.content = '@BlockyBot !savePreferences false'
-    jest.spyOn(bot, 'toggleSavePreferences')
-
     bot.handleOnMessage(msg)
+    expect(bot.togglePreference).toHaveBeenCalled()
+    bot.togglePreference.mockClear()
 
-    expect(bot.toggleSavePreferences).toHaveBeenCalled()
+    msg.content = '@BlockyBot !chat false'
+    bot.handleOnMessage(msg)
+    expect(bot.togglePreference).toHaveBeenCalled()
+    bot.togglePreference.mockClear()
+
+    msg.content = '@BlockyBot !joinMessages false'
+    bot.handleOnMessage(msg)
+    expect(bot.togglePreference).toHaveBeenCalled()
+    bot.togglePreference.mockClear()
+
+    msg.content = '@BlockyBot !achievements false'
+    bot.handleOnMessage(msg)
+    expect(bot.togglePreference).toHaveBeenCalled()
+    bot.togglePreference.mockClear()
+
+    msg.content = '@BlockyBot !leaveMessages false'
+    bot.handleOnMessage(msg)
+    expect(bot.togglePreference).toHaveBeenCalled()
+    bot.togglePreference.mockClear()
   })
 
   test('handleOnMessage(): !showStatus', () => {
@@ -291,15 +323,5 @@ describe('lib/Bot.js', () => {
     bot.handleOnMessage(msg)
 
     expect(bot.clearPreferences).toHaveBeenCalled()
-  })
-
-  test('handleOnMessage(): !chat', () => {
-    const msg = getMsg('@BlockyBot')
-    msg.content = '@BlockyBot !chat false'
-    jest.spyOn(bot, 'toggleChat')
-
-    bot.handleOnMessage(msg)
-
-    expect(bot.toggleChat).toHaveBeenCalled()
   })
 })

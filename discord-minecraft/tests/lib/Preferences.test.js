@@ -6,7 +6,10 @@ jest.mock('fs')
 const config = {
   bot: { minecraftChannel: 123 },
   elasticSearch: { enabled: true },
-  minecraft: { rconEnabled: true },
+  minecraft: {
+    rconEnabled: true,
+    logfileEnabled: true
+  },
   preferences: {
     enabled: true,
     path: 'preferences.js'
@@ -25,7 +28,7 @@ describe('lib/Preferences.js', () => {
     expect(pref.botLoginsEnabled).toBe(config.elasticSearch.enabled)
     expect(pref.botChatEnabled).toBe(config.minecraft.rconEnabled)
     expect(pref.botPrefsEnabled).toBe(config.preferences.enabled)
-    expect(pref.defaultMinecraftChannel).toBe(config.bot.minecraftChannel)
+    expect(pref.botLogfileEnabled).toBe(config.minecraft.logfileEnabled)
     expect(pref.prefsPath).toBe(config.preferences.path)
     expect(pref.log).toBe(log)
     expect(pref.prefs).toBeDefined()
@@ -190,6 +193,18 @@ describe('lib/Preferences.js', () => {
 
   test('savePreferences(): set false', () => {
     expect(pref.savePreferences(123, false)).toBe(false)
+  })
+
+  test('joinMessages(): set false', () => {
+    expect(pref.joinMessages(123, false)).toBe(false)
+  })
+
+  test('achievements(): set false', () => {
+    expect(pref.achievements(123, false)).toBe(false)
+  })
+
+  test('leaveMessages(): set false', () => {
+    expect(pref.leaveMessages(123, false)).toBe(false)
   })
 
   test('channel(): set 567', () => {

@@ -10,7 +10,7 @@ const Preferences = require('./Preferences.js')
 
 module.exports = class Bot {
   constructor (config) {
-    this.botChatEnabled = config.minecraft.rconEnabled
+    this.botLogfileEnabled = config.minecraft.logfileEnabled
     this.log = Bunyan.createLogger({ name: config.bot.logName, level: 'debug' })
     this.discord = new Discord(config.bot.token, this.log)
     this.elastic = new Elastic(config.elasticSearch, this.log)
@@ -55,26 +55,21 @@ module.exports = class Bot {
   }
 
   handleOnLine (line) {
-    if (line.match(/\[Rcon\]/)) {
-      return
-    }
-    if (line.match(/<.+>/)) {
-      const match = line.match(/^\[.+\]\s\[.+\]:\s(.*)$/)
-      if (match && match[1]) {
-        // Any guilds subscribed to chat should get the message
-        this.preferences.getGuilds().forEach(guildId => {
-          const channel = this.preferences.channel(guildId)
-          if (channel !== undefined && this.preferences.chatEnabled(guildId)) {
-            this.log.debug(`Fetching channel for: ${channel}`)
-            this.discord.client.channels.fetch(channel)
-              .then(c => {
-                c.send(match[1])
-                this.log.info(`Sent to (${c.name}): ${match[1]}`)
-              })
-              .catch(err => this.log.error(err))
-          }
-        })
-      }
+    // [01:41:32] [Server thread/INFO]: [Rcon] <Reven> Testing!
+    if (line.match(/\[Rcon\]/)) { return }
+
+    if (line.match(/: <.+>/)) {
+      // [01:41:45] [Server thread/INFO]: <p0rt23> Working
+      this.sendLogToGuilds(line, this.preferences.chatEnabled)
+    } else if (line.match(/joined the game$/)) {
+      // [23:35:34] [Server thread/INFO]: p0rt23 joined the game
+      this.sendLogToGuilds(line, this.preferences.joinMessages)
+    } else if (line.match(/has made the advancement \[.+\]$/)) {
+      // [23:40:26] [Server thread/INFO]: p0rt23 has made the advancement [Tactical Fishing]
+      this.sendLogToGuilds(line, this.preferences.achievements)
+    } else if (line.match(/left the game$/)) {
+      // [23:40:31] [Server thread/INFO]: p0rt23 left the game
+      this.sendLogToGuilds(line, this.preferences.leaveMessages)
     }
   }
 
@@ -86,11 +81,17 @@ module.exports = class Bot {
       } else if (msg.content.match(/!status/)) {
         this.showStatus(msg)
       } else if (msg.content.match(/!savePreferences/) && this.preferences.botPrefsEnabled) {
-        this.toggleSavePreferences(msg)
+        this.togglePreference(msg, 'savePreferences')
       } else if (msg.content.match(/!clearPreferences/) && this.preferences.botPrefsEnabled) {
         this.clearPreferences(msg)
       } else if (msg.content.match(/!chat/)) {
-        this.toggleChat(msg)
+        this.togglePreference(msg, 'chat')
+      } else if (msg.content.match(/!joinMessages/)) {
+        this.togglePreference(msg, 'joinMessages')
+      } else if (msg.content.match(/!achievements/)) {
+        this.togglePreference(msg, 'achievements')
+      } else if (msg.content.match(/!leaveMessages/)) {
+        this.togglePreference(msg, 'leaveMessages')
       }
     } else {
       // Only process if message was in the right channel
@@ -131,7 +132,7 @@ module.exports = class Bot {
   registerEvents () {
     this.discord.client.on('ready', () => { this.handleOnReady() })
     this.discord.client.on('message', msg => { this.handleOnMessage(msg) })
-    if (this.botChatEnabled) {
+    if (this.botLogfileEnabled) {
       this.minecraft.logfile.on('line', line => this.handleOnLine(line))
     }
   }
@@ -153,6 +154,21 @@ module.exports = class Bot {
     })
   }
 
+  sendLogToGuilds (line, prefFunction) {
+    const message = line.replace(/^\[.+\]:\s/, '')
+    this.preferences.getGuilds().forEach(guildId => {
+      const channel = this.preferences.channel(guildId)
+      const isEnabled = prefFunction(guildId)
+      if (channel !== undefined && isEnabled) {
+        this.log.debug(`Fetching channel for: ${channel}`)
+        this.discord.client.channels.fetch(channel).then(c => {
+          c.send(message)
+          this.log.info(`[${guildId}] [${c.name}]: ${message}`)
+        }).catch(err => this.log.error(err))
+      }
+    })
+  }
+
   setChannel (msg) {
     const channel = msg.mentions.channels.first()
     if (channel !== undefined) {
@@ -167,25 +183,16 @@ module.exports = class Bot {
     this.log.info(`[${msg.guild.id}] ${msg.author.username}: showStatus`)
   }
 
-  toggleChat (msg) {
+  togglePreference (msg, pref) {
     if (msg.content.match(/true/)) {
-      this.preferences.chatEnabled(msg.guild.id, true)
-      this.log.info(`[${msg.guild.id}] ${msg.author.username}: chat=true`)
+      this.preferences.preference(msg.guild.id, pref, true)
+      this.log.info(`[${msg.guild.id}] ${msg.author.username}: ${pref}=true`)
+      this.discord.reply(msg, `${pref} set to true.`)
     }
     if (msg.content.match(/false/)) {
-      this.preferences.chatEnabled(msg.guild.id, false)
-      this.log.info(`[${msg.guild.id}] ${msg.author.username}: chat=false`)
-    }
-  }
-
-  toggleSavePreferences (msg) {
-    if (msg.content.match(/true/)) {
-      this.preferences.savePreferences(msg.guild.id, true)
-      this.log.info(`[${msg.guild.id}] ${msg.author.username}: savePreferences=true`)
-    }
-    if (msg.content.match(/false/)) {
-      this.preferences.savePreferences(msg.guild.id, false)
-      this.log.info(`[${msg.guild.id}] ${msg.author.username}: savePreferences=false`)
+      this.preferences.preference(msg.guild.id, pref, false)
+      this.log.info(`[${msg.guild.id}] ${msg.author.username}: ${pref}=false`)
+      this.discord.reply(msg, `${pref} set to false.`)
     }
   }
 
