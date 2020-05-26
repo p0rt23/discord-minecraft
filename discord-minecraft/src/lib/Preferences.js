@@ -7,7 +7,7 @@ module.exports = class Preferences {
     this.botLoginsEnabled = config.elasticSearch.enabled
     this.botChatEnabled = config.minecraft.rconEnabled
     this.botPrefsEnabled = config.preferences.enabled
-    this.defaultMinecraftChannel = config.bot.minecraftChannel
+    this.botLogfileEnabled = config.minecraft.logfileEnabled
     this.prefsPath = config.preferences.path
     this.log = log
     this.prefs = {}
@@ -34,6 +34,18 @@ module.exports = class Preferences {
 
   savePreferences (guildId, isEnabled) {
     return this.preference(guildId, 'savePreferences', isEnabled)
+  }
+
+  joinMessages (guildId, isEnabled) {
+    return this.botLogfileEnabled && this.preference(guildId, 'joinMessages', isEnabled)
+  }
+
+  achievements (guildId, isEnabled) {
+    return this.botLogfileEnabled && this.preference(guildId, 'achievements', isEnabled)
+  }
+
+  leaveMessages (guildId, isEnabled) {
+    return this.botLogfileEnabled && this.preference(guildId, 'leaveMessages', isEnabled)
   }
 
   channel (guildId, channelId) {
