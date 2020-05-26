@@ -177,12 +177,11 @@ describe('lib/Bot.js', () => {
 
   test('sendLogToGuilds()', () => {
     const line = '[01:41:45] [Server thread/INFO]: <p0rt23> Working'
-    const prefFn = jest.fn(() => { return true })
     bot.preferences.getGuilds = jest.fn(() => { return ['345'] })
+    bot.preferences.preference = jest.fn(() => { return true })
 
-    bot.sendLogToGuilds(line, prefFn)
+    bot.sendLogToGuilds(line, 'chat')
 
-    expect(prefFn).toHaveBeenCalled()
     expect(bot.discord.client.channels.fetch).toHaveBeenCalled()
     bot.discord.client.channels.fetch.mockClear()
   })

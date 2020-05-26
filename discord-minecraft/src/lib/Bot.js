@@ -60,16 +60,16 @@ module.exports = class Bot {
 
     if (line.match(/: <.+>/)) {
       // [01:41:45] [Server thread/INFO]: <p0rt23> Working
-      this.sendLogToGuilds(line, this.preferences.chatEnabled.bind(this))
+      this.sendLogToGuilds(line, 'chat')
     } else if (line.match(/joined the game$/)) {
       // [23:35:34] [Server thread/INFO]: p0rt23 joined the game
-      this.sendLogToGuilds(line, this.preferences.joinMessages.bind(this))
+      this.sendLogToGuilds(line, 'joinMessages')
     } else if (line.match(/has made the advancement \[.+\]$/)) {
       // [23:40:26] [Server thread/INFO]: p0rt23 has made the advancement [Tactical Fishing]
-      this.sendLogToGuilds(line, this.preferences.achievements.bind(this))
+      this.sendLogToGuilds(line, 'achievements')
     } else if (line.match(/left the game$/)) {
       // [23:40:31] [Server thread/INFO]: p0rt23 left the game
-      this.sendLogToGuilds(line, this.preferences.leaveMessages.bind(this))
+      this.sendLogToGuilds(line, 'leaveMessages')
     }
   }
 
@@ -154,11 +154,11 @@ module.exports = class Bot {
     })
   }
 
-  sendLogToGuilds (line, prefFunction) {
+  sendLogToGuilds (line, pref) {
     const message = line.replace(/^\[.+\]:\s/, '')
     this.preferences.getGuilds().forEach(guildId => {
       const channel = this.preferences.channel(guildId)
-      const isEnabled = prefFunction(guildId)
+      const isEnabled = this.preferences.preference(guildId, pref)
       if (channel !== undefined && isEnabled) {
         this.log.debug(`Fetching channel for: ${channel}`)
         this.discord.client.channels.fetch(channel).then(c => {
