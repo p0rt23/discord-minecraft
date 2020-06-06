@@ -19,7 +19,7 @@ module.exports = class Bot {
   }
 
   clearPreferences (msg) {
-    this.log.info(`[${msg.guild.id}] ${msg.author.username}: clearPreferences`)
+    this.log.info(`[${msg.guild.name}] ${msg.author.username}: clearPreferences`)
     this.preferences.clearPreferences(msg.guild.id)
     this.discord.reply(msg, 'preferences cleared!')
   }
@@ -182,14 +182,14 @@ module.exports = class Bot {
     const channel = msg.mentions.channels.first()
     if (channel !== undefined) {
       this.preferences.channel(msg.guild.id, channel.id)
-      this.log.info(`[${msg.guild.id}] ${msg.author.username}: channel=${channel.id} (${channel.name})`)
+      this.log.info(`[${msg.guild.name}] ${msg.author.username}: channel=${channel.id} (${channel.name})`)
       this.discord.reply(msg, `channel set to ${channel.name}!`)
     }
   }
 
   showStatus (msg) {
     this.discord.reply(msg, this.formatStatus(msg.guild.id))
-    this.log.info(`[${msg.guild.id}] ${msg.author.username}: showStatus`)
+    this.log.info(`[${msg.guild.name}] ${msg.author.username}: showStatus`)
   }
 
   showAtHelp (msg) {
@@ -226,12 +226,12 @@ module.exports = class Bot {
   togglePreference (msg, pref) {
     if (msg.content.match(/true/)) {
       this.preferences.preference(msg.guild.id, pref, true)
-      this.log.info(`[${msg.guild.id}] ${msg.author.username}: ${pref}=true`)
+      this.log.info(`[${msg.guild.name}] ${msg.author.username}: ${pref}=true`)
       this.discord.reply(msg, `${pref} set to true.`)
     }
     if (msg.content.match(/false/)) {
       this.preferences.preference(msg.guild.id, pref, false)
-      this.log.info(`[${msg.guild.id}] ${msg.author.username}: ${pref}=false`)
+      this.log.info(`[${msg.guild.name}] ${msg.author.username}: ${pref}=false`)
       this.discord.reply(msg, `${pref} set to false.`)
     }
   }
