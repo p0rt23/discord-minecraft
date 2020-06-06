@@ -74,6 +74,11 @@ module.exports = class Bot {
   }
 
   handleOnMessage (msg) {
+    // Ignore bots
+    if (msg.author.bot) {
+      return
+    }
+
     // Only process if message is tagged at @botname
     if (this.isAtMe(msg)) {
       if (msg.content.match(/!channel/)) {
@@ -92,12 +97,16 @@ module.exports = class Bot {
         this.togglePreference(msg, 'achievements')
       } else if (msg.content.match(/!leaveMessages/)) {
         this.togglePreference(msg, 'leaveMessages')
+      } else if (msg.content.match(/!help/)) {
+        this.showAtHelp(msg)
       }
     } else {
       // Only process if message was in the right channel
       if (msg.channel.id === this.preferences.channel(msg.guild.id)) {
         if (msg.content.match(/^!logins/) && this.preferences.loginsEnabled(msg.guild.id)) {
           this.replyLogins(msg)
+        } else if (msg.content.match(/^!help/)) {
+          this.showHelp(msg)
         } else {
           if (this.preferences.chatEnabled(msg.guild.id) && (!this.isFromMe(msg))) {
             this.minecraftSay(msg)
@@ -181,6 +190,37 @@ module.exports = class Bot {
   showStatus (msg) {
     this.discord.reply(msg, this.formatStatus(msg.guild.id))
     this.log.info(`[${msg.guild.id}] ${msg.author.username}: showStatus`)
+  }
+
+  showAtHelp (msg) {
+    const help = []
+    const me = this.discord.client.user.username
+
+    help.push('here are commands you send @ me:')
+    help.push(`@${me} !help (shows this message)`)
+    help.push(`@${me} !status (displays my settings)`)
+    help.push(`@${me} !channel #channelName (set the channel I listen to)`)
+    help.push(`@${me} !savePreferences true|false (whether or not I store settings)`)
+    help.push(`@${me} !clearPreferences (reset preferences to default for this server)`)
+    help.push(`@${me} !chat true|false (toggle ability to chat with Minecraft server)`)
+    help.push(`@${me} !joinMessages true|false (toggle sending a message when a player joins the server)`)
+    help.push(`@${me} !leaveMessages true|false (toggle sending a message when a player leaves the server`)
+    help.push(`@${me} !achievements true|false (toggle sending a message when a player gains an achievement)`)
+    help.push('See !help in channel for channel commands.')
+
+    this.discord.reply(msg, help.join('\n'))
+    this.log.info(`[${msg.guild.name}] ${msg.author.username}: @{me} !help`)
+  }
+
+  showHelp (msg) {
+    const help = []
+
+    help.push('here are commands I\'ll respond to:')
+    help.push('!help (shows this message)')
+    help.push('!logins 1 (show player logins for the past 1 day)')
+
+    this.discord.reply(msg, help.join('\n'))
+    this.log.info(`[${msg.guild.name}] ${msg.author.username}: !help`)
   }
 
   togglePreference (msg, pref) {

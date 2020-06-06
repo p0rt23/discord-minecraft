@@ -1,10 +1,10 @@
 {
   "name": "discord-minecraft",
-  "version": "1.13.0",
+  "version": "1.14.0",
   "description": "Minecraft DiscordBot",
   "main": "src/app.js",
   "scripts": {
-    "fix": "./node_modules/.bin/eslint . --ext .js --fix",
+    "lint:fix": "./node_modules/.bin/eslint . --ext .js --fix",
     "pretest": "./node_modules/.bin/eslint . --ext .js",
     "test": "jest",
     "start": "node src/app.js",
