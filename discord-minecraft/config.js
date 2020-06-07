@@ -6,7 +6,17 @@ const config = {
   development: {
     bot: {
       token: process.env.TOKEN,
-      logName: 'discord-minecraft-develop'
+      logName: 'discord-minecraft-develop',
+      adminWhiteList: {
+        roles: [
+          'ADMINISTRATOR',
+          'MANAGE_GUILD',
+          'MANAGE_ROLES_OR_PERMISSIONS'
+        ],
+        users: [
+          '191614980552916992' // @Reven
+        ]
+      }
     },
     elasticSearch: {
       enabled: true,
@@ -28,7 +38,17 @@ const config = {
   testing: {
     bot: {
       token: process.env.TOKEN,
-      logName: 'discord-minecraft-develop'
+      logName: 'discord-minecraft-develop',
+      adminWhiteList: {
+        roles: [
+          'ADMINISTRATOR',
+          'MANAGE_GUILD',
+          'MANAGE_ROLES_OR_PERMISSIONS'
+        ],
+        users: [
+          '191614980552916992' // @Reven
+        ]
+      }
     },
     elasticSearch: {
       enabled: true,
@@ -50,7 +70,17 @@ const config = {
   production: {
     bot: {
       token: process.env.TOKEN,
-      logName: 'discord-minecraft'
+      logName: 'discord-minecraft',
+      adminWhiteList: {
+        roles: [
+          'ADMINISTRATOR',
+          'MANAGE_GUILD',
+          'MANAGE_ROLES_OR_PERMISSIONS'
+        ],
+        users: [
+          '191614980552916992' // @Reven
+        ]
+      }
     },
     elasticSearch: {
       enabled: true,

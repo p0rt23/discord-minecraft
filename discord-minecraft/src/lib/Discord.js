@@ -22,9 +22,9 @@ module.exports = class Discord {
       // Can't send more than 2000 characters
       if (text.length >= 2000) {
         text = text.substring(0, 1950)
-        this.log.info(`Replied to ${msg.author.username}: (TRUNCATED) ${text}`)
+        this.log.debug(`${msg.guild.name}|${msg.author.username}|Discord.reply(): (TRUNCATED) ${text}`)
       } else {
-        this.log.info(`Replied to ${msg.author.username}: ${text}`)
+        this.log.debug(`${msg.guild.name}|${msg.author.username}|Discord.reply(): ${text}`)
       }
       msg.reply(text).catch(e => {
         this.log.error(e)

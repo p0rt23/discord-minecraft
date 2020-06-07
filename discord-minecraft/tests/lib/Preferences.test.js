@@ -4,7 +4,20 @@ const fs = require('fs')
 jest.mock('fs')
 
 const config = {
-  bot: { minecraftChannel: 123 },
+  bot: {
+    minecraftChannel: 123,
+    adminWhiteList: {
+      roles: [
+        'ADMINISTRATOR',
+        'MANAGE_GUILD',
+        'MANAGE_ROLES_OR_PERMISSIONS'
+      ],
+      users: [
+        '191614980552916992', // @Reven
+        '5678'
+      ]
+    }
+  },
   elasticSearch: { enabled: true },
   minecraft: {
     rconEnabled: true,
@@ -215,5 +228,20 @@ describe('lib/Preferences.js', () => {
     pref.channel(123, '567')
     pref.clearPreferences(123)
     expect(pref.channel(123)).not.toBeDefined()
+  })
+
+  test('getAdmins()', () => {
+    const admins = pref.getAdmins(123)
+    expect(admins.indexOf('5678') > -1).toBe(true)
+  })
+
+  test('addAdmin()', () => {
+    const admins = pref.addAdmin(123, '6789')
+    expect(admins.indexOf('6789') > -1).toBe(true)
+  })
+
+  test('removeAdmin()', () => {
+    const admins = pref.removeAdmin(123, '6789')
+    expect(admins.indexOf('6789') === -1).toBe(true)
   })
 })
