@@ -16,6 +16,15 @@ module.exports = class Bot {
     this.elastic = new Elastic(config.elasticSearch, this.log)
     this.minecraft = new Minecraft(config.minecraft, this.log)
     this.preferences = new Preferences(config, this.log)
+    this.adminWhiteList = config.bot.adminWhiteList
+  }
+
+  addAdmin (msg) {
+    // @bot !addAdmin @userTag
+    const user = msg.mentions.users.last()
+    this.preferences.addAdmin(msg.guild.id, user.id)
+    this.discord.reply(msg, `${user.username} added as a bot admin!`)
+    this.log.info(`${msg.guild.name}|${msg.author.username}|Bot.addAdmin(): ${user.username}`)
   }
 
   clearPreferences (msg) {
@@ -45,12 +54,62 @@ module.exports = class Bot {
     return formatted.join('\n')
   }
 
-  formatStatus (id) {
+  async formatStatus (msg) {
     const status = []
-    status.push(`Current status of ${this.discord.client.user}:`)
-    for (const key in this.preferences.prefs[id]) {
-      status.push(`${key}: ${this.preferences.prefs[id][key]}`)
+
+    status.push(`Current status of ${this.discord.client.user.username} on ${msg.guild.name}:`)
+    status.push(`Version: ${process.env.npm_package_version}`)
+    status.push(`!logins enabled: ${this.preferences.loginsEnabled(msg.guild.id)}`)
+    status.push(`!chat enabled: ${this.preferences.chatEnabled(msg.guild.id)}`)
+    status.push(`!savePreferences enabled: ${this.preferences.savePreferences(msg.guild.id)}`)
+    status.push(`!joinMessages enabled: ${this.preferences.joinMessages(msg.guild.id)}`)
+    status.push(`!achievements enabled: ${this.preferences.achievements(msg.guild.id)}`)
+    status.push(`!leaveMessages enabled: ${this.preferences.leaveMessages(msg.guild.id)}`)
+
+    const channelId = this.preferences.channel(msg.guild.id)
+    let channelName = 'NONE'
+    if (channelId !== undefined) {
+      this.log.debug(`${msg.guild.name}|${msg.author.username}|Bot.formatStatus(): Fetching channel ${channelId}`)
+      try {
+        const channel = await this.discord.client.channels.fetch(this.preferences.channel(msg.guild.id))
+        if (channel !== undefined) {
+          channelName = channel.name
+        }
+      } catch (e) {
+        this.log.error(e)
+      }
     }
+    status.push(`!channel set to: ${channelName}`)
+
+    const adminNames = []
+    const admins = this.preferences.getAdmins(msg.guild.id)
+    admins.unshift(msg.guild.ownerID)
+    if (admins.length > 0) {
+      for (const userId of admins) {
+        try {
+          this.log.debug(`${msg.guild.name}|${msg.author.username}|Bot.formatStatus(): Fetching user ${userId}`)
+          const user = await this.discord.client.users.fetch(userId)
+          if (user !== undefined) {
+            adminNames.push(user.username)
+          }
+        } catch (e) {
+          this.log.error(e)
+        }
+      }
+    }
+    status.push(`Users who can change these settings: ${adminNames.join(', ')}`)
+
+    /*
+    this.discord.client.channels.fetch(this.preferences.channel(guild.id))
+      .then(c => { status.push(`!channel set to: ${c.name}`) })
+      .catch(e => this.log.error(e))
+    const adminNames = []
+    this.preferences.getAdmins(guild.id).forEach(userId => {
+      this.discord.client.users.fetch(userId)
+        .then(user => { adminNames.push(user.username) })
+        .catch(e => this.log.error(e))
+    })
+    */
     return status.join('\n')
   }
 
@@ -75,12 +134,11 @@ module.exports = class Bot {
 
   handleOnMessage (msg) {
     // Ignore bots
-    if (msg.author.bot) {
-      return
-    }
+    if (msg.author.bot) { return }
 
-    // Only process if message is tagged at @botname
+    // Only process if message is tagged at @botname and from an Admin
     if (this.isAtMe(msg)) {
+      if (!this.isFromAdmin(msg)) { return }
       if (msg.content.match(/!channel/)) {
         this.setChannel(msg)
       } else if (msg.content.match(/!status/)) {
@@ -99,6 +157,10 @@ module.exports = class Bot {
         this.togglePreference(msg, 'leaveMessages')
       } else if (msg.content.match(/!help/)) {
         this.showAtHelp(msg)
+      } else if (msg.content.match(/!addAdmin/)) {
+        this.addAdmin(msg)
+      } else if (msg.content.match(/!removeAdmin/)) {
+        this.removeAdmin(msg)
       }
     } else {
       // Only process if message was in the right channel
@@ -129,6 +191,23 @@ module.exports = class Bot {
     return false
   }
 
+  isFromAdmin (msg) {
+    if (msg.author.id === msg.guild.ownerID) {
+      this.log.debug(`${msg.guild.name}|${msg.author.username}|Bot.isFromAdmin(): guild-owner=true`)
+      return true
+    }
+    if (this.preferences.getAdmins(msg.guild.id).indexOf(msg.author.id) > -1) {
+      this.log.debug(`${msg.guild.name}|${msg.author.username}|Bot.isFromAdmin(): adminWhiteList.users=true`)
+      return true
+    }
+    if (msg.member.hasPermission(this.adminWhiteList.roles)) {
+      this.log.debug(`${msg.guild.name}|${msg.author.username}|Bot.isFromAdmin(): adminWhiteList.roles=true`)
+      return true
+    }
+    this.log.debug(`${msg.guild.name}|${msg.author.username}|Bot.isFromAdmin(): false`)
+    return false
+  }
+
   isFromMe (msg) {
     return (msg.author.username === this.discord.client.user.username)
   }
@@ -144,6 +223,14 @@ module.exports = class Bot {
     if (this.botLogfileEnabled) {
       this.minecraft.logfile.on('line', line => this.handleOnLine(line))
     }
+  }
+
+  removeAdmin (msg) {
+    // @bot !removeAdmin @userTag
+    const user = msg.mentions.users.last()
+    this.preferences.removeAdmin(msg.guild.id, user.id)
+    this.discord.reply(msg, `${user.username} removed as a bot admin!`)
+    this.log.info(`${msg.guild.name}|${msg.author.username}|Bot.removeAdmin(): ${user.username}`)
   }
 
   run () {
@@ -172,7 +259,7 @@ module.exports = class Bot {
         this.log.debug(`Fetching channel for: ${channel}`)
         this.discord.client.channels.fetch(channel).then(c => {
           c.send(message)
-          this.log.info(`[${guildId}] [${c.name}]: ${message}`)
+          this.log.debug(`${guildId}|${c.name}|Bot.sendLogToGuilds(): ${message}`)
         }).catch(err => this.log.error(err))
       }
     })
@@ -182,14 +269,20 @@ module.exports = class Bot {
     const channel = msg.mentions.channels.first()
     if (channel !== undefined) {
       this.preferences.channel(msg.guild.id, channel.id)
-      this.log.info(`[${msg.guild.name}] ${msg.author.username}: channel=${channel.id} (${channel.name})`)
+      this.log.info(`${msg.guild.name}|${msg.author.username}|Bot.setChannel(): channel=${channel.id} (${channel.name})`)
       this.discord.reply(msg, `channel set to ${channel.name}!`)
     }
   }
 
   showStatus (msg) {
-    this.discord.reply(msg, this.formatStatus(msg.guild.id))
-    this.log.info(`[${msg.guild.name}] ${msg.author.username}: showStatus`)
+    this.formatStatus(msg)
+      .then(status => {
+        this.discord.reply(msg, status)
+        this.log.info(`${msg.guild.name}|${msg.author.username}|Bot.showStatus()`)
+      })
+      .catch(e => this.log.error(e))
+    // this.discord.reply(msg, this.formatStatus(msg.guild))
+    // this.log.info(`${msg.guild.name}|${msg.author.username}|Bot.showStatus()`)
   }
 
   showAtHelp (msg) {
@@ -206,10 +299,12 @@ module.exports = class Bot {
     help.push(`@${me} !joinMessages true|false (toggle sending a message when a player joins the server)`)
     help.push(`@${me} !leaveMessages true|false (toggle sending a message when a player leaves the server`)
     help.push(`@${me} !achievements true|false (toggle sending a message when a player gains an achievement)`)
+    help.push(`@${me} !addAdmin @user (give a user permission to run these commands)`)
+    help.push(`@${me} !removeAdmin @user (revoke permission for a user to run these commands)`)
     help.push('See !help in channel for channel commands.')
 
     this.discord.reply(msg, help.join('\n'))
-    this.log.info(`[${msg.guild.name}] ${msg.author.username}: @{me} !help`)
+    this.log.info(`${msg.guild.name}|${msg.author.username}|Bot.showAtHelp()`)
   }
 
   showHelp (msg) {
@@ -220,18 +315,18 @@ module.exports = class Bot {
     help.push('!logins 1 (show player logins for the past 1 day)')
 
     this.discord.reply(msg, help.join('\n'))
-    this.log.info(`[${msg.guild.name}] ${msg.author.username}: !help`)
+    this.log.info(`${msg.guild.name}|${msg.author.username}|Bot.showHelp()`)
   }
 
   togglePreference (msg, pref) {
     if (msg.content.match(/true/)) {
       this.preferences.preference(msg.guild.id, pref, true)
-      this.log.info(`[${msg.guild.name}] ${msg.author.username}: ${pref}=true`)
+      this.log.info(`${msg.guild.name}|${msg.author.username}|Bot.togglePreference(): ${pref}=true`)
       this.discord.reply(msg, `${pref} set to true.`)
     }
     if (msg.content.match(/false/)) {
       this.preferences.preference(msg.guild.id, pref, false)
-      this.log.info(`[${msg.guild.name}] ${msg.author.username}: ${pref}=false`)
+      this.log.info(`${msg.guild.name}|${msg.author.username}|Bot.togglePreference(): ${pref}=false`)
       this.discord.reply(msg, `${pref} set to false.`)
     }
   }

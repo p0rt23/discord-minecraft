@@ -5,7 +5,8 @@ jest.mock('discord.js')
 const token = 'myToken'
 const log = {
   info: jest.fn(),
-  error: jest.fn()
+  error: jest.fn(),
+  debug: jest.fn()
 }
 const discord = new Discord(token, log)
 
@@ -23,13 +24,13 @@ describe('Discord Class', () => {
   test('reply()', () => {
     const msg = {
       author: { username: 'TestUsername' },
+      guild: { name: 'NearZero-Test' },
       reply: jest.fn()
     }
 
     discord.reply(msg, 'Test Reply')
 
     expect(msg.reply).toHaveBeenCalled()
-    expect(discord.log.info).toHaveBeenCalled()
   })
 
   test('reply(): Exception', () => {

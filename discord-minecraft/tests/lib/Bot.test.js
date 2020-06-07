@@ -8,7 +8,18 @@ jest.mock('../../src/lib/Preferences.js')
 const config = {
   bot: {
     token: process.env.token,
-    logName: 'discord-minecraft'
+    logName: 'discord-minecraft',
+    adminWhiteList: {
+      roles: [
+        'ADMINISTRATOR',
+        'MANAGE_GUILD',
+        'MANAGE_ROLES_OR_PERMISSIONS'
+      ],
+      users: [
+        '191614980552916992', // @Reven
+        '5678'
+      ]
+    }
   },
   elasticSearch: {
     enabled: true,
@@ -32,7 +43,11 @@ function getMsg (...mentions) {
   const msg = {
     guild: { id: 123 },
     content: '',
-    author: { username: 'TestUser' },
+    author: {
+      id: '5678',
+      username: 'TestUser'
+    },
+    member: { hasPermission: jest.fn() },
     channel: { id: '567' },
     mentions: {
       users: { first: () => undefined },
@@ -134,6 +149,22 @@ describe('lib/Bot.js', () => {
     expect(bot.isAtMe(msg)).toBe(false)
   })
 
+  test('isFromAdmin()', () => {
+    const msg = getMsg()
+    msg.author.id = '123'
+    msg.guild.ownerID = '123'
+    expect(bot.isFromAdmin(msg)).toBe(true)
+
+    bot.preferences.getAdmins = jest.fn(() => { return ['5678'] })
+    msg.author.id = '5678'
+    expect(bot.isFromAdmin(msg)).toBe(true)
+
+    msg.author.id = '234'
+    const bool = bot.isFromAdmin(msg)
+    expect(msg.member.hasPermission).toHaveBeenCalled()
+    expect(bool).toBe(false)
+  })
+
   test('togglePreference()', () => {
     const msg = getMsg('@BlockyBot')
     msg.content = '@BlockyBot !savePreferences false'
@@ -146,6 +177,7 @@ describe('lib/Bot.js', () => {
     expect(bot.preferences.preference).toHaveBeenCalledWith(msg.guild.id, 'savePreferences', true)
   })
 
+  /*
   test('formatStatus():', () => {
     bot.preferences.prefs = {
       123: {
@@ -154,8 +186,13 @@ describe('lib/Bot.js', () => {
       }
     }
 
-    expect(bot.formatStatus('123')).toBeDefined()
+    let status
+    bot.formatStatus('123')
+      .then(s => { status = s })
+      .catch(e => {})
+    expect(status).toBeDefined()
   })
+  */
 
   test('showStatus():', () => {
     const msg = getMsg('@BlockyBot')
@@ -163,6 +200,20 @@ describe('lib/Bot.js', () => {
 
     bot.showStatus(msg)
 
+    expect(bot.discord.reply).toHaveBeenCalled()
+  })
+
+  test('showAtHelp():', () => {
+    const msg = getMsg('@BlockyBot')
+    msg.content = '@BlockyBot !help'
+    bot.showAtHelp(msg)
+    expect(bot.discord.reply).toHaveBeenCalled()
+  })
+
+  test('showHelp():', () => {
+    const msg = getMsg()
+    msg.content = '!help'
+    bot.showAtHelp(msg)
     expect(bot.discord.reply).toHaveBeenCalled()
   })
 
@@ -322,5 +373,19 @@ describe('lib/Bot.js', () => {
     bot.handleOnMessage(msg)
 
     expect(bot.clearPreferences).toHaveBeenCalled()
+  })
+
+  test('handleOnMessage(): !help', () => {
+    jest.spyOn(bot, 'showAtHelp')
+    let msg = getMsg('@BlockyBot')
+    msg.content = '@BlockyBot !help'
+    bot.handleOnMessage(msg)
+    expect(bot.showAtHelp).toHaveBeenCalled()
+
+    jest.spyOn(bot, 'showHelp')
+    msg = getMsg()
+    msg.content = '!help'
+    bot.handleOnMessage(msg)
+    expect(bot.showHelp).toHaveBeenCalled()
   })
 })

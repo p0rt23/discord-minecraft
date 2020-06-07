@@ -9,6 +9,7 @@ module.exports = class Preferences {
     this.botPrefsEnabled = config.preferences.enabled
     this.botLogfileEnabled = config.minecraft.logfileEnabled
     this.prefsPath = config.preferences.path
+    this.adminWhiteListUsers = config.bot.adminWhiteList.users
     this.log = log
     this.prefs = {}
   }
@@ -58,6 +59,45 @@ module.exports = class Preferences {
     }
   }
 
+  getAdmins (guildId) {
+    // preference() returns true if undefined as default value
+    let admins = this.preference(guildId, 'admins')
+    if (admins === true) {
+      admins = []
+    }
+    return this.adminWhiteListUsers.length > 0
+      ? admins.concat(this.adminWhiteListUsers) : admins
+  }
+
+  addAdmin (guildId, userId) {
+    if (userId !== undefined) {
+      let admins = this.preference(guildId, 'admins')
+      // preference() returns true if undefined as default value
+      if (admins === true) {
+        admins = []
+      }
+      admins.push(userId)
+      return this.preference(guildId, 'admins', admins)
+    }
+  }
+
+  removeAdmin (guildId, userId) {
+    if (userId !== undefined) {
+      const admins = this.preference(guildId, 'admins')
+      // preference() returns true if undefined as default value
+      if (admins === true) {
+        return
+      }
+      const newAdmins = []
+      admins.forEach(id => {
+        if (id !== userId) {
+          newAdmins.push(id)
+        }
+      })
+      return this.preference(guildId, 'admins', newAdmins)
+    }
+  }
+
   clearPreferences (guildId) {
     if (guildId !== undefined) {
       this.log.debug(`Clearing preferences for ${guildId}`)
@@ -68,9 +108,9 @@ module.exports = class Preferences {
     }
   }
 
-  preference (id, pref, bool) {
-    if (this.botPrefsEnabled && (bool !== undefined)) {
-      this.setPref(id, pref, bool)
+  preference (id, pref, val) {
+    if (this.botPrefsEnabled && (val !== undefined)) {
+      this.setPref(id, pref, val)
       if (this.savePreferences(id)) {
         this.savePrefs()
       }
@@ -78,11 +118,11 @@ module.exports = class Preferences {
     return this.getPref(id, pref)
   }
 
-  setPref (id, pref, bool) {
+  setPref (id, pref, val) {
     if (this.prefs[id] === undefined) {
       this.prefs[id] = {}
     }
-    this.prefs[id][pref] = bool
+    this.prefs[id][pref] = val
   }
 
   getPref (id, pref) {

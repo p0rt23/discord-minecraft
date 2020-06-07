@@ -2,7 +2,7 @@ FROM alpine
 
 RUN apk update && \
     apk add build-base && \
-    apk add python && \
+    apk add python3 && \
     apk add nodejs && \
     apk add npm 
 
