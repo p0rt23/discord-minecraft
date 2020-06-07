@@ -7,6 +7,7 @@ const Discord = require('./Discord.js')
 const Elastic = require('./Elastic.js')
 const Minecraft = require('./Minecraft.js')
 const Preferences = require('./Preferences.js')
+const yoMamma = require('yo-mamma').default
 
 module.exports = class Bot {
   constructor (config) {
@@ -31,6 +32,11 @@ module.exports = class Bot {
     this.log.info(`[${msg.guild.name}] ${msg.author.username}: clearPreferences`)
     this.preferences.clearPreferences(msg.guild.id)
     this.discord.reply(msg, 'preferences cleared!')
+  }
+
+  defaultAtReply () {
+    const reply = yoMamma().replace(/^Yo/, 'yo')
+    return reply
   }
 
   formatLogins (logins, daysBack) {
@@ -99,17 +105,6 @@ module.exports = class Bot {
     }
     status.push(`Users who can change these settings: ${adminNames.join(', ')}`)
 
-    /*
-    this.discord.client.channels.fetch(this.preferences.channel(guild.id))
-      .then(c => { status.push(`!channel set to: ${c.name}`) })
-      .catch(e => this.log.error(e))
-    const adminNames = []
-    this.preferences.getAdmins(guild.id).forEach(userId => {
-      this.discord.client.users.fetch(userId)
-        .then(user => { adminNames.push(user.username) })
-        .catch(e => this.log.error(e))
-    })
-    */
     return status.join('\n')
   }
 
@@ -161,6 +156,8 @@ module.exports = class Bot {
         this.addAdmin(msg)
       } else if (msg.content.match(/!removeAdmin/)) {
         this.removeAdmin(msg)
+      } else {
+        this.discord.reply(msg, this.defaultAtReply())
       }
     } else {
       // Only process if message was in the right channel
