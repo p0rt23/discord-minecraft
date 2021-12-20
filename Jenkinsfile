@@ -64,7 +64,6 @@ pipeline {
                 sh """
                     docker run \
                         -d \
-                        --restart=always \
                         --network=elastic \
                         --name=${container_name} \
                         -v minecraft-logs:/minecraft/logs:ro \
