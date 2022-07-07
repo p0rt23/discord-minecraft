@@ -25,7 +25,7 @@
     "bunyan": "^1.8.14",
     "discord.js": "^12.3.1",
     "dotenv": "^8.2.0",
-    "moment": "^2.27.0",
+    "moment": "^2.29.4",
     "node-cleanup": "^2.1.2",
     "rcon-client": "^4.2.2",
     "tail-file": "^1.4.13",
